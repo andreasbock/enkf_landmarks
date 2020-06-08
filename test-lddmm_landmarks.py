@@ -151,8 +151,8 @@ loss = LDDMMloss(Kv, dataloss, c_param)
 # --------------------
 
 # initialize momentum vectors
-p0 = torch.zeros(q0.shape, dtype=torchdtype, device=torchdeviceId, requires_grad=True)
-
+p0 = torch.zeros(q0.shape, dtype=torchdtype, device=torchdeviceId,
+                 requires_grad=True)
 optimizer = torch.optim.LBFGS([p0], max_eval=100)
 
 # Writer will output to ./runs/ directory by default
@@ -178,7 +178,6 @@ print('optimization took {:.2f}'.format(end - start))
 
 # final p/q solve
 pqs = Shooting(p0, q0, Kv, nt=nt, deltat=deltat)
-
 qs = np.array([q.detach().numpy() for _, q in pqs])
-lib_landmarks.plot_q(qs)
 
+lib_landmarks.plot_q(qs)
