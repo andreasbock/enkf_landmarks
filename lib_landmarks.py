@@ -295,15 +295,18 @@ def fnl_histogram(fnls, fname, test_name, bins='auto'):
 def plot_q(qs, fname=None, title=None):
     plt.figure(figsize=(5,4))
 
-    for l in range(len(qs[0])):
-        plt.plot(qs[:,l,0], qs[:,l,1], c='k', lw=0.75, zorder=1)
-
-    plt.scatter(qs[0][:,0], qs[0][:,1], c='b', marker='o', label='$q_0$', zorder=2)
-    plt.scatter(qs[-1,l,0], qs[-1,l,1], c='r', marker='x', label='$q_1$', zorder=2)
-
+    if len(qs.shape) == 2:
+        plt.plot(qs[:,0], qs[:,1], c='b', marker='o')
+    elif len(qs.shape) == 3:
+        for l in range(len(qs[0])):
+            plt.plot(qs[:,l,0], qs[:,l,1], c='k', lw=0.75, zorder=1)
+        plt.scatter(qs[0][:,0], qs[0][:,1], c='b', marker='o', label='$q_0$', zorder=2)
+        plt.scatter(qs[-1,l,0], qs[-1,l,1], c='r', marker='x', label='$q_1$', zorder=2)
+        plt.legend(loc='best')
+    else:
+        raise ValueError("Dimensions wrong.")
     if title:
         plt.title(title)
-    plt.legend(loc='best')
     plt.grid(linestyle='dotted')
     plt.ylabel('y')
     plt.xlabel('x')
