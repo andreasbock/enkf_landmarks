@@ -2,7 +2,7 @@ import torch
 import math
 import scipy.linalg as la
 
-from lddmm import LDDMMForward, GaussKernel
+from lddmm import lddmm_forward, gauss_kernel
 from ensemble import Ensemble
 
 torch_dtype = torch.float32
@@ -22,9 +22,9 @@ class EnsembleKalmanFilter:
 
         # Shooting/ODE parameters
         sigma = torch.tensor([0.01], dtype=torch_dtype)
-        k = GaussKernel(sigma=sigma)
+        k = gauss_kernel(sigma=sigma)
         self.timesteps = 20
-        self.shoot = lambda p0: LDDMMForward(p0, self.q0, k, self.timesteps)[-1]
+        self.shoot = lambda p0: lddmm_forward(p0, self.q0, k, self.timesteps)[-1]
 
         # EnKF parameters
         self.alpha_0 = 1.

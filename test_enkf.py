@@ -1,5 +1,5 @@
 from enkf import *
-from lddmm import LDDMMForward, GaussKernel
+from lddmm import lddmm_forward, gauss_kernel
 import utils
 import pickle
 
@@ -13,7 +13,7 @@ pi = torch.tensor(math.pi)
 
 
 sigma = torch.tensor([0.01], dtype=torch_dtype)
-K = GaussKernel(sigma=sigma)
+K = gauss_kernel(sigma=sigma)
 
 # 1) define q0 and q1, the latter by shooting from the distribution
 Q0_np, Q1_np, test_name = utils.squeeze(num_landmarks)
@@ -24,7 +24,7 @@ for i in range(ensemble_size):
     p0 = torch.tensor([[torch.sin(i * 2 * pi / ensemble_size), torch.cos(i * 2 * pi / ensemble_size)]
                        for i in range(num_landmarks)],
                       dtype=torch_dtype, requires_grad=True)
-    q1 += LDDMMForward(p0, q0, K, timesteps)[-1][1]
+    q1 += lddmm_forward(p0, q0, K, timesteps)[-1][1]
 q1 /= ensemble_size
 
 # 2) sample a random initial momentum (from the same distribution!)
@@ -34,7 +34,7 @@ for i in range(ensemble_size):
     p0 = torch.tensor([[torch.cos(i * 2 * pi / ensemble_size), torch.sin(i * 2 * pi / ensemble_size)]
                        for i in range(num_landmarks)],
                       dtype=torch_dtype, requires_grad=True)
-    q1 = LDDMMForward(p0, q0, K, timesteps)[-1][1]
+    q1 = lddmm_forward(p0, q0, K, timesteps)[-1][1]
     pe.append(p0)
     we.append(q1)
 
