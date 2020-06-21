@@ -1,22 +1,12 @@
 # Standard imports
 
-import os
 import time
 import numpy as np
-#from tqdm import tqdm
 
 # PyTorch and KeOps
 from torch.autograd import grad
-from pykeops.torch import Kernel, kernel_product
 from pykeops.torch.kernel_product.formula import *
 import pykeops.torch as pk
-
-from torch.utils.tensorboard import SummaryWriter
-import tensorboardX
-import pylab as plt
-
-# User-defined imports
-import lib_landmarks
 
 # torch type and device
 use_cuda = torch.cuda.is_available()
@@ -69,23 +59,22 @@ def HamiltonianSystem(K):
         return -Gq, Gp
     return HS
 
-
 #####################################################################
 # Shooting approach
 # -----------------
 
-def Shooting(p0, q0, K, nt, Integrator=ForwardEulerIntegrator()):
+def LDDMMForward(p0, q0, K, nt, Integrator=ForwardEulerIntegrator()):
     return Integrator(HamiltonianSystem(K), (p0, q0), nt)
 
 def LDDMMloss(K, nt, Q1):
     def loss(p0, q0):
-        p, q = Shooting(p0, q0, K, nt)[-1]
+        p, q = LDDMMForward(p0, q0, K, nt)[-1]
         functional = ((q - Q1)*(q - Q1)).sum()
         return functional
     return loss
 
 #####################################################################
-# Define data attachment and LDDMM functional
+# Shooting
 # -------------------------------------------
 
 def shoot(q0, q1, nt, sigma, p0=None, epochs=15):
@@ -111,13 +100,13 @@ def shoot(q0, q1, nt, sigma, p0=None, epochs=15):
 
     for i in range(epochs):
         optimizer.step(closure)
-        Shooting(p0, q0, Kv, nt)
+        LDDMMForward(p0, q0, Kv, nt)
 
     end = time.time()
     print('Optimization took {:.2f}'.format(end - start))
 
     # final p/q solve
-    pqs = Shooting(p0, q0, Kv, nt)
+    pqs = LDDMMForward(p0, q0, Kv, nt)
     qs = np.array([q.detach().numpy() for _, q in pqs])
 
     return qs
