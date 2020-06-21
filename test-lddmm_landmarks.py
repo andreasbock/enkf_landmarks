@@ -1,6 +1,6 @@
 import torch
 import lib_landmarks
-from shoot_lddmm import shoot
+from lddmm import shoot
 
 use_cuda = torch.cuda.is_available()
 torchdtype = torch.float32
