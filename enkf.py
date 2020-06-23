@@ -4,8 +4,13 @@ import scipy.linalg as la
 
 from lddmm import lddmm_forward, gauss_kernel
 from ensemble import Ensemble
+from utils import plot_q
 
 torch_dtype = torch.float32
+
+
+class EnKFError(RuntimeError):
+    pass
 
 
 class EnsembleKalmanFilter:
@@ -24,7 +29,7 @@ class EnsembleKalmanFilter:
         sigma = torch.tensor([0.01], dtype=torch_dtype)
         k = gauss_kernel(sigma=sigma)
         self.timesteps = 20
-        self.shoot = lambda p0: lddmm_forward(p0, self.q0, k, self.timesteps)[-1]
+        self.shoot = lambda p0: lddmm_forward(p0, self.q0, k, self.timesteps)[-1][1]
 
         # EnKF parameters
         self.alpha_0 = 1.
@@ -33,59 +38,53 @@ class EnsembleKalmanFilter:
         self.eta = 1e-03                 # noise limit
         self.gamma = torch.eye(self.q_dim, dtype=torch_dtype)
         self.sqrt_gamma = torch.tensor(la.sqrtm(self.gamma))
-        self.W = None
-        self.P = None
+        self.P = Ensemble()  # stores momenta at t=0
+        self.Q = Ensemble()  # stores shapes at t=1
+        self.P_init = None  # for logging
+
         # termination criteria for the error
         self.atol = 1e-05
-        self.P_init = None
         self.max_iter = 10**5
 
     def predict(self):
-        self.W.clear()
-        for e in self.P.ensemble:
-            self.W.append(self.shoot(e)[1])
+        self.Q.clear()
+        for p0 in self.P.ensemble:
+            q1 = self.shoot(p0)
+            self.Q.append(q1)
 
     def correct(self):
         p_new = Ensemble()
-        for i, (p, w) in enumerate(zip(self.P.ensemble, self.W.ensemble)):
-            p_new.append(p + self.gain(w))
+        for p, q in zip(self.P.ensemble, self.Q.ensemble):
+            p_new.append(p + self.gain(q))
 
         self.P = p_new
 
     def gain(self, w):
-        cw = self.compute_cw_op()
+        cq = self.compute_cq()
         cp = self.compute_cp()
 
         p_update = torch.zeros(self.num_landmarks, self.p_dim)
         for k in range(self.num_landmarks):
-            q_update = torch.matmul(cw[k, :, :], (self.q1 - w)[k])
+            q_update = torch.matmul(cq[k, :, :], (self.q1 - w)[k])
             p_update[k] = torch.matmul(cp[k, :, :], q_update)
+            pass
 
         return p_update
 
-    def compute_cw(self):
-        w_ens = self.W.ensemble
-        w_mean = self.W.mean()
-
-        cw = torch.zeros(self.num_landmarks, self.q_dim, self.q_dim)
-        for j in range(self.ensemble_size):
-            cw += torch.einsum('ij,ik->ijk', w_ens[j] - w_mean, w_ens[j] - w_mean)
-        cw /= (self.ensemble_size - 1)
-        return cw
-
     def compute_cp(self):
-        w_mean = self.W.mean()
+        q_mean = self.Q.mean()
         p_mean = self.P.mean()
 
         cp = torch.zeros(self.num_landmarks, self.p_dim, self.q_dim)
         for j in range(self.ensemble_size):
-            cp += torch.einsum('ij,ik->ijk', self.P.ensemble[j] - p_mean, self.W.ensemble[j] - w_mean)
+            cp += torch.einsum('ij,ik->ijk', self.P.ensemble[j] - p_mean, self.Q.ensemble[j] - q_mean)
 
         return cp / (self.ensemble_size - 1)
 
-    def compute_cw_op(self):
-        lhs = self.rho * self.error_norm(self.q1 - self.W.mean())
-        cw = self.compute_cw()
+    def compute_cq(self):
+        """" Returns a regularised version of CQ. """
+        lhs = self.rho * self.error_norm(self.q1 - self.Q.mean())
+        cq = self.compute_cq_operator()
 
         k = 0
         max_iter = 10**3
@@ -93,37 +92,44 @@ class EnsembleKalmanFilter:
         while k < max_iter:
 
             # compute the operator of which we need the inverse
-            cw_alpha_gamma_inv = torch.inverse(cw + alpha * self.gamma)
+            cq_alpha_gamma_inv = torch.inverse(cq + alpha * self.gamma)
 
             # compute the error norm (rhs)
-            w_cw_inv = torch.einsum('ijk,ij->ik', cw_alpha_gamma_inv, self.q1 - self.W.mean())
-            rhs = self.error_norm(w_cw_inv)
-            if alpha * rhs >= lhs:
-                return cw_alpha_gamma_inv
+            q_cq_inv = torch.einsum('ijk,ij->ik', cq_alpha_gamma_inv, self.q1 - self.Q.mean())
+            if alpha * self.error_norm(q_cq_inv) >= lhs:
+                return cq_alpha_gamma_inv
             else:
                 alpha *= 2
                 k += 1
 
-        raise ValueError("!!! alpha failed to converge in {} iterations".format(max_iter))
+        raise EnKFError("!!! alpha failed to converge in {} iterations".format(max_iter))
+
+    def compute_cq_operator(self):
+        q_ens = self.Q.ensemble
+        q_mean = self.Q.mean()
+
+        cq = torch.zeros((self.num_landmarks, self.q_dim, self.q_dim))
+        for j in range(self.ensemble_size):
+            cq += torch.einsum('ij,ik->ijk', q_ens[j] - q_mean, q_ens[j] - q_mean)
+        cq /= (self.ensemble_size - 1)
+        return cq
 
     def error_norm(self, x):
-        # assumes we use an \ell^2 norm of `\sqrt(Gamma)(mismatch)`
-        inner_norm = torch.einsum("ij,kj->ki", self.sqrt_gamma, x)
-        err_norm = torch.sqrt(torch.einsum('ij,ij->', inner_norm, inner_norm))
-        return err_norm
+        # we use an \ell^2 norm of `\sqrt(Gamma)(mismatch)`
+        prod_gamma_x = torch.einsum('ij,kj->ki', self.sqrt_gamma, x)
+        return torch.sqrt(torch.einsum('ij,ij->', prod_gamma_x, prod_gamma_x))
 
-    def run(self, p, w):
+    def run(self, p):
         k = 0
         self.P_init = p  # for logging
         self.P = p
-        self.W = w
-        err = float("-inf")
+        err = float("-inf")  # initial error
         while k < self.max_iter:
-            print("Iter ", k)
+            print("Iteration ", k)
             self.predict()
-            self.dump_mean()
-            n_err = self.error_norm(self.q1 - self.W.mean())
-            print("\t\t --> error norm: {}".format(n_err))
+            self.dump_mean(k)
+            n_err = self.error_norm(self.q1 - self.Q.mean())
+            print("\t --> error norm: {}".format(n_err))
             if math.fabs(n_err-err) < self.atol:
                 print("No improvement in residual, terminating filter")
                 break
@@ -135,8 +141,9 @@ class EnsembleKalmanFilter:
             k += 1
         return self.P
 
-    def dump_mean(self):
-        print("W_mean: {}".format(self.W.mean()))
+    def dump_mean(self, k):
+        q_mean = self.Q.mean().detach().numpy()
+        plot_q(q_mean, fname=self.log_dir + "Q1_enkf_iter={}".format(k))
 
     def dump_parameters(self):
         import os

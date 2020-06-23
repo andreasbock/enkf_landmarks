@@ -2,6 +2,7 @@ from enkf import *
 from lddmm import lddmm_forward, gauss_kernel
 import utils
 import pickle
+import math
 
 torch_dtype = torch.float32
 
@@ -15,35 +16,31 @@ pi = torch.tensor(math.pi)
 sigma = torch.tensor([0.01], dtype=torch_dtype)
 K = gauss_kernel(sigma=sigma)
 
-# 1) define q0 and q1, the latter by shooting from the distribution
-Q0_np, Q1_np, test_name = utils.squeeze(num_landmarks)
-q0 = torch.tensor(Q0_np, dtype=torch_dtype, requires_grad=True)
+# 1) define q0
+q0_np, _, _ = utils.translation(num_landmarks)
+q0 = torch.tensor(q0_np, dtype=torch_dtype, requires_grad=True)
 q1 = torch.zeros(num_landmarks, dim, dtype=torch_dtype)
 
-for i in range(ensemble_size):
-    p0 = torch.tensor([[torch.sin(i * 2 * pi / ensemble_size), torch.cos(i * 2 * pi / ensemble_size)]
-                       for i in range(num_landmarks)],
-                      dtype=torch_dtype, requires_grad=True)
-    q1 += lddmm_forward(p0, q0, K, timesteps)[-1][1]
-q1 /= ensemble_size
+# 2) define q1 by shooting with a random initial momenta, and save this momenta in an Ensemble
+#    (but scaled by a constant to produce a different shape!)
 
-# 2) sample a random initial momentum (from the same distribution!)
 pe = Ensemble()
-we = Ensemble()
-for i in range(ensemble_size):
-    p0 = torch.tensor([[torch.cos(i * 2 * pi / ensemble_size), torch.sin(i * 2 * pi / ensemble_size)]
-                       for i in range(num_landmarks)],
-                      dtype=torch_dtype, requires_grad=True)
-    q1 = lddmm_forward(p0, q0, K, timesteps)[-1][1]
+for j in range(ensemble_size):
+    p0 = q0
+    scale = .1
+    for i in range(int(num_landmarks/2)):
+        p0[i, :] *= scale*(1 + num_landmarks - i)/num_landmarks
+        p0[num_landmarks-i-1, :] *= scale*(1 + num_landmarks - i)/num_landmarks
+    q1 += lddmm_forward(p0, q0, K, timesteps)[-1][1]
+    #p0 *= math.log(2**j)
     pe.append(p0)
-    we.append(q1)
 
-print("q0: ", q0, "\n")
-print("q1: ", q1, "\n")
+q1 /= ensemble_size
+plot_q(q1, "q1_truth")
 
 # 3) set up and run Kalman filter
 ke = EnsembleKalmanFilter(ensemble_size, q0, q1)
-p_result = ke.run(pe, we)
+p_result = ke.run(pe)
 ke.dump_parameters()
 
 # 4) use the momentum we found to compute the mean observation

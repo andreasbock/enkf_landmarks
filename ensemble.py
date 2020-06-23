@@ -9,7 +9,7 @@ class Ensemble:
         if len(self.ensemble) < 1:
             raise ValueError("Cannot take mean of empty ensemble")
         else:
-            return torch.mean(torch.stack(self.ensemble))
+            return torch.mean(torch.stack(self.ensemble), dim=0)
 
     def append(self, ne):
         self.ensemble.append(ne)

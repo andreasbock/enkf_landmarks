@@ -1,13 +1,16 @@
 import numpy as np
 import pylab as plt
+import torch
 
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
-def sample_circle(num_landmarks, scale=1, shift=0):
+
+def translation(num_landmarks, scale=1, shift=0):
     thetas = np.linspace(0, 2*np.pi, num=num_landmarks+1)[:-1]
     positions = scale * np.array([[np.cos(x), np.sin(x)] for x in thetas])
-    return positions, positions+ shift, 'circle'
+    return positions, positions + shift, 'circle'
+
 
 def criss_cross(num_landmarks):
     test_name = 'criss_cross'
@@ -18,6 +21,7 @@ def criss_cross(num_landmarks):
     q1 = np.ones([num_landmarks,2])
     q1[:,1] = q1x[::-1]
     return q0, q1, test_name
+
 
 def pringle(num_landmarks):
     test_name = 'pringle'
@@ -34,9 +38,10 @@ def pringle(num_landmarks):
     thetas = np.linspace(np.pi, 2*np.pi, num=num_bot+1)[:-1]
     positions_bot = scale * np.array([[np.cos(x), np.sin(x)] for x in thetas])[::-1]
 
-    q0 = sample_circle(num_landmarks)
+    q0 = translation(num_landmarks)
     q1 = np.append(positions_top, positions_bot, axis=0)
     return q0, q1, test_name
+
 
 def squeeze(num_landmarks):
     test_name = 'squeeze'
@@ -73,9 +78,10 @@ def squeeze(num_landmarks):
             q1[k] = (x + - pert*np.sign(x), y)
         k += 1
 
-    _,q0,_ = sample_circle(num_landmarks)
+    _,q0,_ = translation(num_landmarks)
 
     return q0, q1, test_name
+
 
 def triangle_flip(num_landmarks):
     test_name = 'triangle_flip'
@@ -111,6 +117,7 @@ def triangle_flip(num_landmarks):
 
     return q0, q1, test_name
 
+
 def triangle_rot(num_landmarks):
     test_name = 'triangle_rot'
     q0, _, _ = triangle_flip(num_landmarks)
@@ -123,6 +130,7 @@ def triangle_rot(num_landmarks):
     new_origin = (a + b + c)/ 3. - np.array([-2.5, 0])
     q1 = np.array(list(map(lambda p: np.dot(rot_m, p), np.copy(q0)))) + new_origin
     return q0, q1, test_name
+
 
 def pent_to_square(num_landmarks):
     test_name = 'pent_to_square'
@@ -147,6 +155,7 @@ def pent_to_square(num_landmarks):
     # collapse B into C
     q1 = np.array(ss*[a] + pts(a, c) + pts(c, d) + pts(d, e) + pts(e, a))
     return q0, q1, test_name
+
 
 def pent_to_tri(num_landmarks):
     test_name = 'pent_to_tri'
@@ -173,6 +182,7 @@ def pent_to_tri(num_landmarks):
 
     return q0, q1, test_name
 
+
 def plot_all(q0, q1, q1_, fname=None):
     fig = plt.figure()
     q0_plt = np.append(q0, [q0[0, :]], axis=0)
@@ -190,6 +200,7 @@ def plot_all(q0, q1, q1_, fname=None):
     else:
         plt.show()
 
+
 def plot_target(q0, q1, fname=None):
     fig = plt.figure()
     q0_plt = np.append(q0, [q0[0, :]], axis=0)
@@ -204,10 +215,12 @@ def plot_target(q0, q1, fname=None):
     else:
         plt.show()
 
-class map_estimator():
+
+class map_estimator:
     def __init__(self, xs, centers):
         self.xs = np.copy(xs)
         self.centers = centers
+
 
 def trace_plot(fnls, log_dir):
     plt.figure()
@@ -215,6 +228,7 @@ def trace_plot(fnls, log_dir):
     plt.ylabel('Functional')
     plt.plot(range(len(fnls)), fnls, 'r*-')
     plt.savefig(log_dir + 'functional_traceplot.pdf', bbox_inches='tight')
+
 
 def centroid_plot(c_samples, log_dir, x_min, x_max, y_min, y_max):
     for i in range(np.shape(np.array(c_samples))[1]):
@@ -230,6 +244,7 @@ def centroid_plot(c_samples, log_dir, x_min, x_max, y_min, y_max):
         plt.axis([x_min, x_max, y_min, y_max])
         plt.savefig(log_dir + 'centroid_evolution_'+str(i)+'.pdf', bbox_inches='tight')
 
+
 def centroid_heatmap(c_samples, log_dir, x_min, x_max, y_min, y_max, bins=10):
     for i in range(np.shape(np.array(c_samples))[1]):
         cs = np.array(c_samples)[:, i, :]
@@ -243,6 +258,7 @@ def centroid_heatmap(c_samples, log_dir, x_min, x_max, y_min, y_max, bins=10):
         cbar.ax.set_ylabel('Number of samples')
         plt.savefig(log_dir + 'centroid_heat_'+str(i)+'.pdf', bbox_inches='tight')
 
+
 def sample_autocov(k, m):
     num_samples, num_kernels, _ = m.shape
     est = 0
@@ -250,6 +266,7 @@ def sample_autocov(k, m):
         for j in range(num_kernels):  # for each kernel in \nu
             est += np.dot(m[i + k, j, :], m[i, j, :])
     return est / num_samples
+
 
 def plot_autocorr(c_samples, fname, lag_max):
     num = lag_max# min(100, len(c_samples))
@@ -268,6 +285,7 @@ def plot_autocorr(c_samples, fname, lag_max):
     plt.ylabel('Sample autocorrelation')
     plt.grid(linestyle='dotted')
     plt.savefig(fname + 'autocorrelation.pdf', bbox_inches='tight')
+
 
 def fnl_histogram(fnls, fname, test_name, bins='auto'):
     plt.figure(figsize=(5,4))
@@ -292,16 +310,23 @@ def fnl_histogram(fnls, fname, test_name, bins='auto'):
 
     plt.savefig(fname + 'functional_histogram.pdf', bbox_inches='tight')
 
-def plot_q(qs, fname=None, title=None):
-    plt.figure(figsize=(5,4))
 
+def plot_q(qs, fname=None, title=None):
+
+    if isinstance(qs, torch.Tensor):
+        qs = qs.detach().numpy()
+
+    plt.figure(figsize=(5, 4))
     if len(qs.shape) == 2:
-        plt.plot(qs[:,0], qs[:,1], c='b', marker='o')
+        qs_ext = np.vstack((qs, qs[0, :]))  # needs improving
+        plt.plot(qs_ext[:, 0], qs_ext[:, 1], c='b', marker='o')
     elif len(qs.shape) == 3:
-        for l in range(len(qs[0])):
-            plt.plot(qs[:,l,0], qs[:,l,1], c='k', lw=0.75, zorder=1)
-        plt.scatter(qs[0][:,0], qs[0][:,1], c='b', marker='o', label='$q_0$', zorder=2)
-        plt.scatter(qs[-1,l,0], qs[-1,l,1], c='r', marker='x', label='$q_1$', zorder=2)
+        for i in range(len(qs[0])):
+            plt.plot(qs[:, i, 0], qs[:, i, 1], c='k', lw=0.75, zorder=1)
+        q0, q1 = qs[0, :, :], qs[-1, :, :]
+        q0_ext, q1_ext = np.vstack((q0, q0[0, :])), np.vstack((q1, q1[0, :]))
+        plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$q_0$', zorder=2)
+        plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$q_1$', zorder=2)
         plt.legend(loc='best')
     else:
         raise ValueError("Dimensions wrong.")
@@ -314,5 +339,5 @@ def plot_q(qs, fname=None, title=None):
     if fname:
         plt.savefig(fname + '.pdf', bbox_inches='tight')
 
-    plt.show()
-    plt.close()
+    #plt.show()
+    #plt.close()
