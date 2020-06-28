@@ -368,3 +368,9 @@ def sample_vonMises(shape, kappa):
     us = np.random.uniform(size=shape)
     return inverse_pdf_vonMises(us, kappa)
 
+
+def sample_normal(size, mu=0, std=1):
+    dim = 2
+    _mu = mu * np.ones(shape=dim)
+    _std = std * np.ones(shape=(dim, dim))
+    return np.random.normal(size=(size, dim), loc=mu, scale=std)
