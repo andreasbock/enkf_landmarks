@@ -2,6 +2,7 @@ import numpy as np
 import pylab as plt
 import torch
 
+torch_dtype = torch.float32
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
@@ -304,14 +305,12 @@ def fnl_histogram(fnls, fname, test_name, bins='auto'):
     fnls_mm = pickle.load(po)
     po.close()
 
-    #plt.axvline(x=sum(fnls_lddmm[test_name]), color='b', label='LDDMM')
-    #plt.axvline(x=sum(fnls_mm[test_name]), color='r', label='Metamorphosis')
     plt.legend(loc='best')
 
     plt.savefig(fname + 'functional_histogram.pdf', bbox_inches='tight')
 
 
-def plot_q(qs, fname=None, title=None):
+def plot_q(qs, filename, q0=None, q1=None, title=None):
 
     if isinstance(qs, torch.Tensor):
         qs = qs.detach().numpy()
@@ -319,7 +318,16 @@ def plot_q(qs, fname=None, title=None):
     plt.figure(figsize=(5, 4))
     if len(qs.shape) == 2:
         qs_ext = np.vstack((qs, qs[0, :]))  # needs improving
-        plt.plot(qs_ext[:, 0], qs_ext[:, 1], c='b', marker='o')
+        plt.plot(qs_ext[:, 0], qs_ext[:, 1], c='k', lw=0.75, zorder=1)
+        if q0 is not None:
+            q0 = q0.detach().numpy()
+            q0_ext = np.vstack((q0, q0[0, :]))
+            plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$q_0$', zorder=2)
+        if q1 is not None:
+            q1 = q1.detach().numpy()
+            q1_ext = np.vstack((q1, q1[0, :]))
+            plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$q_1$', zorder=2)
+
     elif len(qs.shape) == 3:
         for i in range(len(qs[0])):
             plt.plot(qs[:, i, 0], qs[:, i, 1], c='k', lw=0.75, zorder=1)
@@ -327,17 +335,36 @@ def plot_q(qs, fname=None, title=None):
         q0_ext, q1_ext = np.vstack((q0, q0[0, :])), np.vstack((q1, q1[0, :]))
         plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$q_0$', zorder=2)
         plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$q_1$', zorder=2)
-        plt.legend(loc='best')
     else:
         raise ValueError("Dimensions wrong.")
     if title:
         plt.title(title)
+
+    plt.legend(loc='best')
     plt.grid(linestyle='dotted')
     plt.ylabel('y')
     plt.xlabel('x')
 
-    if fname:
-        plt.savefig(fname + '.pdf', bbox_inches='tight')
+    plt.savefig(filename + '.pdf', bbox_inches='tight')
+    plt.close()
 
-    #plt.show()
-    #plt.close()
+
+def pdf_vonMises(x, kappa, mu):
+    from scipy.special import j0
+    return np.exp(kappa*np.cos(x-mu)) / (2*np.pi*j0(kappa))
+
+
+def inverse_pdf_vonMises(u, kappa):
+    """ Inverse PDF for the von Mises distribution with mu=0. """
+    if np.fabs(kappa) < 1e-10:
+        raise ValueError("Kappa too small.")
+    np.seterr(all='raise')
+    inv_kappa = 1. / kappa
+    return 1 + inv_kappa*np.log(u + (1-u)*np.exp(-2*kappa))
+
+
+def sample_vonMises(shape, kappa):
+    """ Returns `num` von Mises distributed numbers on S^1 """
+    us = np.random.uniform(size=shape)
+    return inverse_pdf_vonMises(us, kappa)
+
