@@ -310,13 +310,21 @@ def fnl_histogram(fnls, fname, test_name, bins='auto'):
     plt.savefig(fname + 'functional_histogram.pdf', bbox_inches='tight')
 
 
-def plot_q(qs, filename, q0=None, q1=None, title=None):
+def plot_q(filename, qs=None, q0=None, q1=None, title=None):
 
     if isinstance(qs, torch.Tensor):
         qs = qs.detach().numpy()
 
     plt.figure(figsize=(5, 4))
-    if len(qs.shape) == 2:
+    if qs is None:
+        assert q0 is not None and q1 is not None
+        q0 = q0.detach().numpy()
+        q0_ext = np.vstack((q0, q0[0, :]))
+        plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$q_0$', zorder=2)
+        q1 = q1.detach().numpy()
+        q1_ext = np.vstack((q1, q1[0, :]))
+        plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$q_1$', zorder=2)
+    elif len(qs.shape) == 2:
         qs_ext = np.vstack((qs, qs[0, :]))  # needs improving
         plt.plot(qs_ext[:, 0], qs_ext[:, 1], c='k', lw=0.75, zorder=1)
         if q0 is not None:

@@ -1,5 +1,6 @@
 import torch
 import math
+import os
 import scipy.linalg as la
 
 from lddmm import lddmm_forward, gauss_kernel
@@ -20,6 +21,8 @@ class EnsembleKalmanFilter:
         self.q0 = q0
         self.q1 = q1
         self.log_dir = log_dir
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
 
         self.dim = q0.shape[1]
         self.num_landmarks = q0.shape[0]
@@ -98,7 +101,7 @@ class EnsembleKalmanFilter:
             else:
                 alpha *= 2
                 k += 1
-        return cq_alpha_gamma_inv
+            return cq_alpha_gamma_inv
         raise EnKFError("!!! alpha failed to converge in {} iterations".format(max_iter_regularisation))
 
     def compute_cq_operator(self):
@@ -108,7 +111,7 @@ class EnsembleKalmanFilter:
         cq = torch.zeros((self.num_landmarks, self.dim, self.dim))
         for j in range(self.ensemble_size):
             cq += torch.einsum('ij,ik->ijk', q_ens[j] - q_mean, q_ens[j] - q_mean)
-        cq /= (self.ensemble_size - 1)
+        cq /= self.ensemble_size - 1
         return cq
 
     def error_norm(self, x):
@@ -140,18 +143,14 @@ class EnsembleKalmanFilter:
 
     def dump_mean(self, k, q1=None):
         q_mean = self.Q.mean().detach().numpy()
-        plot_q(q_mean, q0=self.q0, q1=q1, filename=self.log_dir + "Q1_iter={}".format(k))
+        plot_q(qs=q_mean, q0=self.q0, q1=q1, filename=self.log_dir + "Q1_iter={}".format(k))
 
     def dump_parameters(self):
-        import os
-        if not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir)
-
-        fh = open(self.log_dir + 'parameters.log', 'w')
+        fh = open(self.log_dir + 'enkf_parameters.log', 'w')
         fh.write("max_iter: {}\n".format(self.max_iter))
         fh.write("num_landmarks: {}\n".format(self.num_landmarks))
         fh.write("Gamma: {}\n".format(self.gamma))
-        fh.write("timesteps: {}\n".format(self.timesteps))
+        fh.write("time-steps: {}\n".format(self.timesteps))
         fh.write("alpha_0: {}\n".format(self.alpha_0))
         fh.write("rho: {}\n".format(self.rho))
         fh.write("tau: {}\n".format(self.tau))
