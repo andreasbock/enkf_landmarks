@@ -2,6 +2,7 @@ import torch
 import math
 import os
 import scipy.linalg as la
+import pickle
 
 from lddmm import lddmm_forward, gauss_kernel
 from ensemble import Ensemble
@@ -39,7 +40,7 @@ class EnsembleKalmanFilter:
         self.tau = 1 / self.rho + 1e-04  # \tau > 1/\rho
         self.eta = 1e-05                 # noise limit
         self.gamma = torch.eye(self.dim, dtype=torch_dtype)
-        self.sqrt_gamma = torch.tensor(la.sqrtm(self.gamma))
+        self.sqrt_gamma = torch.tensor(la.sqrtm(self.gamma)).tolist()
         self.P = Ensemble()  # stores momenta at t=0
         self.Q = Ensemble()  # stores shapes at t=1
         self.P_init = None  # for logging
@@ -47,6 +48,10 @@ class EnsembleKalmanFilter:
         # termination criteria for the error
         self.atol = 1e-05
         self.max_iter = 50
+
+        # internals for logging
+        self._errors = []
+        self._consensus = []
 
     def predict(self):
         self.Q.clear()
@@ -92,7 +97,7 @@ class EnsembleKalmanFilter:
         alpha = self.alpha_0
         while k < max_iter_regularisation:
             # compute the operator of which we need the inverse
-            cq_alpha_gamma_inv = torch.inverse(cq + alpha * self.gamma)
+            cq_alpha_gamma_inv = torch.inverse(cq + alpha * self.gamma).tolist()
 
             # compute the error norm (rhs)
             q_cq_inv = torch.einsum('ijk,ij->ik', cq_alpha_gamma_inv, self.q1 - self.Q.mean())
@@ -123,23 +128,37 @@ class EnsembleKalmanFilter:
         k = 0
         self.P_init = p  # for logging
         self.P = p
-        err = float("-inf")  # initial error
+        error = float("-inf")  # initial error
         while k < self.max_iter:
             print("Iteration ", k)
             self.predict()
             self.dump_mean(k, q1=q1)
-            n_err = self.error_norm(self.q1 - self.Q.mean())
-            print("\t --> error norm: {}".format(n_err))
-            if math.fabs(n_err-err) < self.atol:
+            new_error = self.error_norm(self.q1 - self.Q.mean())
+            self._errors.append(new_error)
+            self._consensus.append(self.P.consensus())
+            print("\t --> error norm: {}".format(new_error))
+            if math.fabs(new_error-error) < self.atol:
                 print("No improvement in residual, terminating filter")
                 break
-            elif n_err <= self.tau*self.eta:
+            elif new_error <= self.tau*self.eta:
                 break
             else:
                 self.correct()
-                err = n_err
+                error = new_error
             k += 1
+        self.dump_error()
+        self.dump_consensus()
         return self.P
+
+    def dump_error(self):
+        po = open(self.log_dir + 'errors.pickle', 'w')
+        pickle.dump(self._errors, po)
+        po.close()
+
+    def dump_consensus(self):
+        po = open(self.log_dir + 'consensus.pickle', 'w')
+        pickle.dump(self._consensus, po)
+        po.close()
 
     def dump_mean(self, k, q1=None):
         q_mean = self.Q.mean().detach().numpy()
