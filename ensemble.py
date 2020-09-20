@@ -16,3 +16,7 @@ class Ensemble:
 
     def clear(self):
         self.ensemble = []
+
+    def consensus(self):
+        normalised_ensemble = [e - self.mean() for e in self.ensemble]
+        return torch.mean(torch.stack(normalised_ensemble), dim=0)
