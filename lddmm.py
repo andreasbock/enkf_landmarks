@@ -7,6 +7,7 @@ import pykeops.torch as pk
 # torch type and device
 torch_dtype = torch.float32
 
+
 ####################################################################
 # Define standard Gaussian kernel
 # -------------------------------
@@ -20,6 +21,7 @@ def gauss_kernel(sigma):
             'backend': 'auto'
         }
         return pk.kernel_product(params, x, y, b)
+
     return k
 
 
@@ -38,12 +40,14 @@ def forward_euler():
             x = tuple(map(lambda _x, _xd: _x + _xd * dt, x, x_dot))
             xs.append(x)
         return xs
+
     return f
 
 
 def hamiltonian(k):
     def h(p, q):
         return .5 * (p * k(q, q, p)).sum()
+
     return h
 
 
@@ -53,12 +57,13 @@ def hamiltonian_system(k):
     def hs(p, q):
         gp, gq = grad(h(p, q), (p, q), create_graph=True)
         return -gq, gp
+
     return hs
+
 
 #####################################################################
 # Shooting approach
 # -----------------
-
 
 def lddmm_forward(p0, q0, k, nt, integrator=forward_euler()):
     return integrator(hamiltonian_system(k), (p0, q0), nt)
@@ -69,7 +74,9 @@ def lddmm_loss(k, nt, q1):
         p, q = lddmm_forward(p0, q0, k, nt)[-1]
         functional = ((q - q1) * (q - q1)).sum()
         return functional
+
     return loss
+
 
 #####################################################################
 # Shooting
@@ -77,7 +84,6 @@ def lddmm_loss(k, nt, q1):
 
 
 def shoot(q0, q1, nt, sigma, p0=None, epochs=15):
-
     k = gauss_kernel(sigma=sigma)
     loss = lddmm_loss(k, nt, q1)
 
