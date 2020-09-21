@@ -6,7 +6,7 @@ import pickle
 
 from lddmm import lddmm_forward, gauss_kernel
 from ensemble import Ensemble
-from utils import plot_q
+from utils import plot_landmarks
 
 torch_dtype = torch.float32
 
@@ -17,22 +17,22 @@ class EnKFError(RuntimeError):
 
 class EnsembleKalmanFilter:
 
-    def __init__(self, ensemble_size, q0, q1, log_dir='./'):
+    def __init__(self, ensemble_size, template, target, log_dir='./'):
         self.ensemble_size = ensemble_size
-        self.q0 = q0
-        self.q1 = q1
+        self.template = template
+        self.target = target
         self.log_dir = log_dir
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
 
-        self.dim = q0.shape[1]
-        self.num_landmarks = q0.shape[0]
+        self.dim = template.shape[1]
+        self.num_landmarks = template.shape[0]
 
         # Shooting/ODE parameters
         sigma = torch.tensor([1], dtype=torch_dtype)
         k = gauss_kernel(sigma=sigma)
         self.timesteps = 10
-        self.shoot = lambda p0: lddmm_forward(p0, self.q0, k, self.timesteps)[-1][1]
+        self.shoot = lambda p0: lddmm_forward(p0, self.template, k, self.timesteps)[-1][1]
 
         # EnKF parameters
         self.alpha_0 = 1.
@@ -53,12 +53,12 @@ class EnsembleKalmanFilter:
         self._errors = []
         self._consensus = []
 
+        self.dump_parameters()
+
     def predict(self):
         self.Q.clear()
         for p0 in self.P.ensemble:
-            q1 = self.shoot(p0)
-            self.Q.append(q1)
-            pass
+            self.Q.append(self.shoot(p0))
 
     def correct(self):
         p_new = Ensemble()
@@ -72,7 +72,7 @@ class EnsembleKalmanFilter:
 
         p_update = torch.zeros(self.num_landmarks, self.dim)
         for k in range(self.num_landmarks):
-            q_update = torch.matmul(cq[k, :, :], (self.q1 - w)[k])
+            q_update = torch.matmul(cq[k, :, :], (self.target - w)[k])
             p_update[k] = torch.matmul(cp[k, :, :], q_update)
 
         return p_update
@@ -89,7 +89,7 @@ class EnsembleKalmanFilter:
 
     def compute_cq(self):
         """" Returns a regularised version of CQ. """
-        lhs = self.rho * self.error_norm(self.q1 - self.Q.mean())
+        lhs = self.rho * self.error_norm(self.target - self.Q.mean())
         cq = self.compute_cq_operator()
 
         k = 0
@@ -100,7 +100,7 @@ class EnsembleKalmanFilter:
             cq_alpha_gamma_inv = torch.inverse(cq + alpha * self.gamma).tolist()
 
             # compute the error norm (rhs)
-            q_cq_inv = torch.einsum('ijk,ij->ik', cq_alpha_gamma_inv, self.q1 - self.Q.mean())
+            q_cq_inv = torch.einsum('ijk,ij->ik', cq_alpha_gamma_inv, self.target - self.Q.mean())
             if alpha * self.error_norm(q_cq_inv) >= lhs:
                 return cq_alpha_gamma_inv
             else:
@@ -124,7 +124,7 @@ class EnsembleKalmanFilter:
         prod_gamma_x = torch.einsum('ij,kj->ki', self.sqrt_gamma, x)
         return torch.sqrt(torch.einsum('ij,ij->', prod_gamma_x, prod_gamma_x))
 
-    def run(self, p, q1=None):
+    def run(self, p, target):
         k = 0
         self.P_init = p  # for logging
         self.P = p
@@ -132,8 +132,8 @@ class EnsembleKalmanFilter:
         while k < self.max_iter:
             print("Iteration ", k)
             self.predict()
-            self.dump_mean(k, q1=q1)
-            new_error = self.error_norm(self.q1 - self.Q.mean())
+            self.dump_mean(k, target)
+            new_error = self.error_norm(self.target - self.Q.mean())
             self._errors.append(new_error)
             self._consensus.append(self.P.consensus())
             print("\t --> error norm: {}".format(new_error))
@@ -148,7 +148,7 @@ class EnsembleKalmanFilter:
             k += 1
         self.dump_error()
         self.dump_consensus()
-        return self.P
+        return self.P, self.Q.mean().detach().numpy()
 
     def dump_error(self):
         po = open(self.log_dir + 'errors.pickle', 'w')
@@ -160,9 +160,10 @@ class EnsembleKalmanFilter:
         pickle.dump(self._consensus, po)
         po.close()
 
-    def dump_mean(self, k, q1=None):
+    def dump_mean(self, k, target):
         q_mean = self.Q.mean().detach().numpy()
-        plot_q(qs=q_mean, q0=self.q0, q1=q1, filename=self.log_dir + "Q1_iter={}".format(k))
+        plot_landmarks(qs=q_mean, template=self.template, target=target,
+                       file_name=self.log_dir + "PREDICTED_TARGET_iter={}".format(k))
 
     def dump_parameters(self):
         fh = open(self.log_dir + 'enkf_parameters.log', 'w')
@@ -175,8 +176,8 @@ class EnsembleKalmanFilter:
         fh.write("tau: {}\n".format(self.tau))
         fh.write("eta: {}\n".format(self.eta))
         fh.write("atol: {}\n".format(self.atol))
-        fh.write("q0: {}\n".format(self.q0))
-        fh.write("q1: {}\n".format(self.q1))
+        fh.write("template: {}\n".format(self.template))
+        fh.write("target: {}\n".format(self.target))
         if self.P_init:
             fh.write("P_init: {}\n".format(self.P_init))
         fh.close()
