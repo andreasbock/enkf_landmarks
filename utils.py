@@ -22,14 +22,13 @@ def create_dir_from_path_if_not_exists(path):
 def pdump(obj, file_name):
     create_dir_from_path_if_not_exists(file_name)
 
-    po = open(f"{file_name}.pickle", "wb")
+    po = open(f"{file_name}", "wb")
     pickle.dump(obj, po)
     po.close()
 
 
 def pload(file_name):
-    create_dir_from_path_if_not_exists(file_name)
-    po = open(f"{file_name}.pickle", "rb")
+    po = open(f"{file_name}", "rb")
     obj = pickle.load(po)
     po.close()
     return obj

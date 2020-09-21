@@ -35,7 +35,7 @@ class EnsembleKalmanFilter:
         self.tau = 1 / self.rho + 1e-04  # \tau > 1/\rho
         self.eta = 1e-05                 # noise limit
         self.gamma = torch.eye(self.dim, dtype=torch_dtype)
-        self.sqrt_gamma = torch.tensor(la.sqrtm(self.gamma)).tolist()
+        self.root_gamma = torch.tensor(la.sqrtm(self.gamma))
         self.P = Ensemble()  # stores momenta at t=0
         self.Q = Ensemble()  # stores shapes at t=1
 
@@ -91,7 +91,7 @@ class EnsembleKalmanFilter:
         alpha = self.alpha_0
         while k < max_iter_regularisation:
             # compute the operator of which we need the inverse
-            cq_alpha_gamma_inv = torch.inverse(cq + alpha * self.gamma).tolist()
+            cq_alpha_gamma_inv = torch.inverse(cq + alpha * self.gamma)
 
             # compute the error norm (rhs)
             q_cq_inv = torch.einsum('ijk,ij->ik', cq_alpha_gamma_inv, self.target - self.Q.mean())
@@ -115,7 +115,7 @@ class EnsembleKalmanFilter:
 
     def error_norm(self, x):
         # we use an \ell^2 norm of `\sqrt(Gamma)(mismatch)`
-        prod_gamma_x = torch.einsum('ij,kj->ki', self.sqrt_gamma, x)
+        prod_gamma_x = torch.einsum('ij,kj->ki', self.root_gamma, x)
         return torch.sqrt(torch.einsum('ij,ij->', prod_gamma_x, prod_gamma_x))
 
     def run(self, p, target):

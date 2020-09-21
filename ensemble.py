@@ -34,15 +34,15 @@ class Ensemble:
 
     def save(self, file_name):
         utils.create_dir_from_path_if_not_exists(file_name)
-        po = open(f"{file_name}.pickle", "wb")
-        pickle.dump(self.ensemble, po)
-        po.close()
+        utils.pdump(self.ensemble, file_name)
 
-    def load(self, file_name):
-        po = open(f"{file_name}.pickle", "wb")
-        self.ensemble = pickle.load(po)
+    @staticmethod
+    def load(file_name):
+        ens = Ensemble()
+        ens.ensemble = utils.pload(file_name)
+        return ens
 
-    def perturb(self, alpha, op=operator.add):
+    def perturb(self, alpha, op=operator.mul):
         for i in range(self.size()):
             self.ensemble[i] = op(self.ensemble[i], alpha[i])
 

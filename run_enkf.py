@@ -1,22 +1,23 @@
+import numpy as np
+
 from enkf import *
 import utils
 import sys
 
+data_dir = "./TARGET_1/"
 # where to fetch template
-if len(sys.argv) < 1:
+if data_dir is None and len(sys.argv) < 1:
     raise Exception("Must provide a data directory from which to load momentum and target!")
-else:
-    data_dir = sys.argv[0]
 
 # where to dump results
 log_dir = f"EXAMPLE_{utils.date_string()}/"
 
 # 1) load target from file
-pe = utils.pload(data_dir + "pe.pickle")
+pe = Ensemble.load(data_dir + "pe.pickle")
 target = utils.pload(data_dir + "target.pickle")
 
 # 2) make a template to start from
-template_numpy = utils.circle(pe.size())
+template_numpy = utils.circle(len(target))
 template = torch.tensor(template_numpy, dtype=torch_dtype, requires_grad=True)
 utils.plot_landmarks(file_name=log_dir + "template_and_target",
                      template=template,
@@ -26,7 +27,11 @@ utils.plot_landmarks(file_name=log_dir + "template_and_target",
 #   A: adding noise:      p = p_target + \eta, \eta noise
 #   B: multiplying noise: p = p_target + \eta, \eta noise
 #       Note: this can be at ensemble level or element level!
-alpha = [1 for _ in pe.ensemble]
+low = -10
+high = 10
+weight = np.random.uniform(low, high)
+print("weight = ", weight)
+alpha = [weight for _ in pe.ensemble]
 pe.perturb(alpha)
 
 # 4) set up and run Kalman filter
