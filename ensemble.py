@@ -1,5 +1,6 @@
 import torch
 import pickle
+import operator
 
 import utils
 from lddmm import lddmm_forward, gauss_kernel
@@ -42,9 +43,9 @@ class Ensemble:
         po = open(f"{file_name}.pickle", "wb")
         self.ensemble = pickle.load(po)
 
-    def perturb(self, alpha):
-        for i, p in enumerate(self.ensemble):
-            p *= alpha[i]
+    def perturb(self, alpha, op=operator.add):
+        for i in range(self.size()):
+            self.ensemble[i] = op(self.ensemble[i], alpha[i])
 
 
 def ensemble_normal(num_landmarks, ensemble_size):

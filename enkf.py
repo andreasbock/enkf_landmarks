@@ -1,12 +1,10 @@
 import torch
 import math
-import os
 import scipy.linalg as la
-import pickle
 
+import utils
 from lddmm import lddmm_forward, gauss_kernel
 from ensemble import Ensemble
-from utils import plot_landmarks
 
 torch_dtype = torch.float32
 
@@ -17,22 +15,19 @@ class EnKFError(RuntimeError):
 
 class EnsembleKalmanFilter:
 
-    def __init__(self, ensemble_size, template, target, log_dir='./'):
-        self.ensemble_size = ensemble_size
-        self.template = template
+    def __init__(self, template, target, log_dir='./', time_steps=10):
         self.target = target
+        self.ensemble_size = None
+        self.template = template
         self.log_dir = log_dir
-        if not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir)
-
         self.dim = template.shape[1]
         self.num_landmarks = template.shape[0]
 
         # Shooting/ODE parameters
         sigma = torch.tensor([1], dtype=torch_dtype)
         k = gauss_kernel(sigma=sigma)
-        self.timesteps = 10
-        self.shoot = lambda p0: lddmm_forward(p0, self.template, k, self.timesteps)[-1][1]
+        self.time_steps = time_steps
+        self.shoot = lambda p0: lddmm_forward(p0, self.template, k, self.time_steps)[-1][1]
 
         # EnKF parameters
         self.alpha_0 = 1.
@@ -43,7 +38,6 @@ class EnsembleKalmanFilter:
         self.sqrt_gamma = torch.tensor(la.sqrtm(self.gamma)).tolist()
         self.P = Ensemble()  # stores momenta at t=0
         self.Q = Ensemble()  # stores shapes at t=1
-        self.P_init = None  # for logging
 
         # termination criteria for the error
         self.atol = 1e-05
@@ -67,8 +61,8 @@ class EnsembleKalmanFilter:
         self.P = p_new
 
     def gain(self, w):
-        cq = self.compute_cq()
-        cp = self.compute_cp()
+        cq = self._compute_cq()
+        cp = self._compute_cp()
 
         p_update = torch.zeros(self.num_landmarks, self.dim)
         for k in range(self.num_landmarks):
@@ -77,7 +71,7 @@ class EnsembleKalmanFilter:
 
         return p_update
 
-    def compute_cp(self):
+    def _compute_cp(self):
         q_mean = self.Q.mean()
         p_mean = self.P.mean()
 
@@ -87,10 +81,10 @@ class EnsembleKalmanFilter:
 
         return cp / (self.ensemble_size - 1)
 
-    def compute_cq(self):
+    def _compute_cq(self):
         """" Returns a regularised version of CQ. """
         lhs = self.rho * self.error_norm(self.target - self.Q.mean())
-        cq = self.compute_cq_operator()
+        cq = self._compute_cq_operator()
 
         k = 0
         max_iter_regularisation = 15
@@ -109,7 +103,7 @@ class EnsembleKalmanFilter:
             return cq_alpha_gamma_inv
         raise EnKFError("!!! alpha failed to converge in {} iterations".format(max_iter_regularisation))
 
-    def compute_cq_operator(self):
+    def _compute_cq_operator(self):
         q_ens = self.Q.ensemble
         q_mean = self.Q.mean()
 
@@ -125,9 +119,10 @@ class EnsembleKalmanFilter:
         return torch.sqrt(torch.einsum('ij,ij->', prod_gamma_x, prod_gamma_x))
 
     def run(self, p, target):
-        k = 0
-        self.P_init = p  # for logging
         self.P = p
+        self.ensemble_size = self.P.size()
+
+        k = 0
         error = float("-inf")  # initial error
         while k < self.max_iter:
             print("Iteration ", k)
@@ -151,26 +146,27 @@ class EnsembleKalmanFilter:
         return self.P, self.Q.mean().detach().numpy()
 
     def dump_error(self):
-        po = open(self.log_dir + 'errors.pickle', 'w')
-        pickle.dump(self._errors, po)
-        po.close()
+        utils.pdump(self._errors, self.log_dir + 'errors.pickle')
 
     def dump_consensus(self):
-        po = open(self.log_dir + 'consensus.pickle', 'w')
-        pickle.dump(self._consensus, po)
-        po.close()
+        utils.pdump(self._consensus, self.log_dir + 'consensus.pickle')
 
     def dump_mean(self, k, target):
         q_mean = self.Q.mean().detach().numpy()
-        plot_landmarks(qs=q_mean, template=self.template, target=target,
-                       file_name=self.log_dir + "PREDICTED_TARGET_iter={}".format(k))
+        utils.plot_landmarks(qs=q_mean,
+                             template=self.template,
+                             target=target,
+                             file_name=self.log_dir + "PREDICTED_TARGET_iter={}".format(k))
 
     def dump_parameters(self):
+        import os
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
         fh = open(self.log_dir + 'enkf_parameters.log', 'w')
         fh.write("max_iter: {}\n".format(self.max_iter))
         fh.write("num_landmarks: {}\n".format(self.num_landmarks))
         fh.write("Gamma: {}\n".format(self.gamma))
-        fh.write("time-steps: {}\n".format(self.timesteps))
+        fh.write("time-steps: {}\n".format(self.time_steps))
         fh.write("alpha_0: {}\n".format(self.alpha_0))
         fh.write("rho: {}\n".format(self.rho))
         fh.write("tau: {}\n".format(self.tau))
@@ -178,6 +174,4 @@ class EnsembleKalmanFilter:
         fh.write("atol: {}\n".format(self.atol))
         fh.write("template: {}\n".format(self.template))
         fh.write("target: {}\n".format(self.target))
-        if self.P_init:
-            fh.write("P_init: {}\n".format(self.P_init))
         fh.close()
