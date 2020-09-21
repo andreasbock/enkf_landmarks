@@ -1,20 +1,48 @@
 import numpy as np
 import pylab as plt
 import torch
+import pickle
+import os
+from datetime import datetime
 
-torch_dtype = torch.float32
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
+
+
+def date_string():
+    return datetime.now().strftime("%y-%m-%d.%X")
+
+
+def create_dir_from_path_if_not_exists(path):
+    path = os.path.dirname(path)
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+
+def pdump(obj, file_name):
+    create_dir_from_path_if_not_exists(file_name)
+
+    po = open(f"{file_name}.pickle", "wb")
+    pickle.dump(obj, po)
+    po.close()
+
+
+def pload(file_name):
+    create_dir_from_path_if_not_exists(file_name)
+    po = open(f"{file_name}.pickle", "rb")
+    obj = pickle.load(po)
+    po.close()
+    return obj
 
 
 ##########
 # Shapes #
 ##########
 
-def translation(num_landmarks, scale=1, shift=0):
+def circle(num_landmarks, scale=1, shift=0):
     thetas = np.linspace(0, 2 * np.pi, num=num_landmarks + 1)[:-1]
     positions = scale * np.array([[np.cos(x), np.sin(x)] for x in thetas])
-    return positions, positions + shift, 'circle'
+    return positions + shift
 
 
 def triangle(num_landmarks):
@@ -55,36 +83,37 @@ def square(num_landmarks):
 # Plotting #
 ############
 
-def plot_q(filename, qs=None, q0=None, q1=None, title=None):
+def plot_landmarks(file_name, qs=None, template=None, target=None, title=None):
+    create_dir_from_path_if_not_exists(file_name)
     if isinstance(qs, torch.Tensor):
         qs = qs.detach().numpy()
 
     plt.figure(figsize=(5, 4))
     if qs is None:
-        assert q0 is not None and q1 is not None
-        q0 = q0.detach().numpy()
-        q0_ext = np.vstack((q0, q0[0, :]))
+        assert template is not None and target is not None
+        template = template.detach().numpy()
+        q0_ext = np.vstack((template, template[0, :]))
         plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$q_0$', zorder=2)
-        q1 = q1.detach().numpy()
-        q1_ext = np.vstack((q1, q1[0, :]))
+        target = target.detach().numpy()
+        q1_ext = np.vstack((target, target[0, :]))
         plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$q_1$', zorder=2)
     elif len(qs.shape) == 2:
         qs_ext = np.vstack((qs, qs[0, :]))  # needs improving
         plt.plot(qs_ext[:, 0], qs_ext[:, 1], c='k', lw=0.75, zorder=1)
-        if q0 is not None:
-            q0 = q0.detach().numpy()
-            q0_ext = np.vstack((q0, q0[0, :]))
+        if template is not None:
+            template = template.detach().numpy()
+            q0_ext = np.vstack((template, template[0, :]))
             plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$q_0$', zorder=2)
-        if q1 is not None:
-            q1 = q1.detach().numpy()
-            q1_ext = np.vstack((q1, q1[0, :]))
+        if target is not None:
+            target = target.detach().numpy()
+            q1_ext = np.vstack((target, target[0, :]))
             plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$q_1$', zorder=2)
 
     elif len(qs.shape) == 3:
         for i in range(len(qs[0])):
             plt.plot(qs[:, i, 0], qs[:, i, 1], c='k', lw=0.75, zorder=1)
-        q0, q1 = qs[0, :, :], qs[-1, :, :]
-        q0_ext, q1_ext = np.vstack((q0, q0[0, :])), np.vstack((q1, q1[0, :]))
+        template, target = qs[0, :, :], qs[-1, :, :]
+        q0_ext, q1_ext = np.vstack((template, template[0, :])), np.vstack((target, target[0, :]))
         plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$q_0$', zorder=2)
         plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$q_1$', zorder=2)
     else:
@@ -97,7 +126,7 @@ def plot_q(filename, qs=None, q0=None, q1=None, title=None):
     plt.ylabel('y')
     plt.xlabel('x')
 
-    plt.savefig(filename + '.pdf', bbox_inches='tight')
+    plt.savefig(file_name + '.pdf', bbox_inches='tight')
     plt.close()
 
 

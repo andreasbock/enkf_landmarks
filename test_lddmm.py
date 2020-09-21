@@ -20,6 +20,6 @@ q1 = Q1.clone().detach().to(dtype=torchdtype, device=torchdeviceId).requires_gra
 sigma = torch.tensor([0.01], dtype=torchdtype, device=torchdeviceId)
 qs = shoot(q0, q1, nt, sigma)
 
-utils.plot_q(qs)
+utils.plot_landmarks(qs)
 
 
