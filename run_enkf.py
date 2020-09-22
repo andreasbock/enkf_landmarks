@@ -12,7 +12,7 @@ if data_dir is None and len(sys.argv) < 1:
 # where to dump results
 log_dir = f"EXAMPLE_{utils.date_string()}/"
 
-# 1) load target from file
+# 1) load initial ensemble and target from file
 pe = Ensemble.load(data_dir + "pe.pickle")
 target = utils.pload(data_dir + "target.pickle")
 
@@ -29,20 +29,18 @@ utils.plot_landmarks(file_name=log_dir + "template_and_target",
 #       Note: this can be at ensemble level or element level!
 low = -10
 high = 10
-weight = np.random.uniform(low, high)
-print("weight = ", weight)
-alpha = [weight for _ in pe.ensemble]
+alpha = [np.random.uniform(low, high) for _ in pe.ensemble]
 pe.perturb(alpha)
 
 # 4) set up and run Kalman filter
 ke = EnsembleKalmanFilter(template, target, log_dir=log_dir)
 p, q = ke.run(pe, target)
-utils.pdump(p, log_dir + "p_result")
-utils.pdump(q, log_dir + "q_mean")
+utils.pdump(p, log_dir + "p_result.pickle")
+utils.pdump(alpha, log_dir + "weight_vector.pickle")
+utils.pdump(q, log_dir + "final_q_mean.pickle")
 
 # TODO: check that `q` above is the same as `q` below!
 Q = Ensemble()
 for e in p.ensemble:
     Q.append(ke.shoot(e)[1])
 w = Q.mean()
-print(w - q)
