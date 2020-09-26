@@ -8,7 +8,6 @@ from datetime import datetime
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
-
 def date_string():
     return datetime.now().strftime("%H:%M_%d-%m-%y")
 
@@ -126,6 +125,34 @@ def plot_landmarks(file_name, qs=None, template=None, target=None, title=None):
     plt.xlabel('x')
 
     plt.savefig(file_name + '.pdf', bbox_inches='tight')
+    plt.close()
+
+
+def plot_errors(errors_path, file_name):
+    po = open(errors_path, "rb")
+    errors = pickle.load(po)
+    po.close()
+
+    plt.semilogy(range(len(errors)), errors)
+
+    plt.xlabel(r'Iteration $k$')
+    plt.ylabel(r'$E^k$')
+    plt.grid(linestyle='dotted')
+    plt.savefig(file_name, bbox_inches='tight')
+    plt.close()
+
+
+def plot_consensus(consensus_path, file_name):
+    po = open(consensus_path, "rb")
+    consensus = pickle.load(po)
+    po.close()
+
+    plt.plot(range(len(consensus), consensus))
+
+    plt.xlabel(r'Iteration $k$')
+    plt.ylabel(r'$\text{Cov}_{PP}^k$')
+    plt.grid(linestyle='dotted')
+    plt.savefig(file_name, bbox_inches='tight')
     plt.close()
 
 

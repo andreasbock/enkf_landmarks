@@ -1,5 +1,4 @@
 import torch
-import pickle
 import operator
 
 import utils
