@@ -44,3 +44,6 @@ def run_enkf_on_target(data_dir):
 
     utils.pdump(p, log_dir + "p_result.pickle")
     utils.pdump(q, log_dir + "final_q_mean.pickle")
+
+    utils.plot_errors(log_dir + "errors.pickle")
+    utils.plot_consensus(log_dir + "consensus.pickle")
