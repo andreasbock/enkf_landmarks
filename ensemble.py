@@ -29,7 +29,7 @@ class Ensemble:
 
     def consensus(self):
         normalised_ensemble = [e - self.mean() for e in self.ensemble]
-        return torch.mean(torch.stack(normalised_ensemble), dim=0)
+        return torch.mean(torch.stack(normalised_ensemble), dim=0).norm()
 
     def save(self, file_name):
         utils.create_dir_from_path_if_not_exists(file_name)

@@ -147,10 +147,10 @@ def plot_consensus(consensus_path, file_name):
     consensus = pickle.load(po)
     po.close()
 
-    plt.plot(range(len(consensus), consensus))
+    plt.semilogy(range(len(consensus)), consensus)
 
     plt.xlabel(r'Iteration $k$')
-    plt.ylabel(r'$\text{Cov}_{PP}^k$')
+    plt.ylabel(r'$\textnormal{Cov}_{PP}^k$')
     plt.grid(linestyle='dotted')
     plt.savefig(file_name, bbox_inches='tight')
     plt.close()
