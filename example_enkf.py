@@ -2,14 +2,9 @@ import numpy as np
 
 from enkf import *
 import utils
-import sys
 
 
 def run_enkf_on_target(data_dir):
-    # where to fetch template
-    if data_dir is None and len(sys.argv) < 1:
-        raise Exception("Must provide a data directory from which to load momentum and target!")
-
     # where to dump results
     log_dir = f"EXAMPLE_{utils.date_string()}/"
 
@@ -47,3 +42,8 @@ def run_enkf_on_target(data_dir):
 
     utils.plot_errors(log_dir + "errors.pickle")
     utils.plot_consensus(log_dir + "consensus.pickle")
+
+
+if __name__ == "__main__":
+    for i in range(1, 7):
+        run_enkf_on_target(f"./data/TARGET_{i}/")
