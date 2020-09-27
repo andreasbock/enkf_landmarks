@@ -8,8 +8,9 @@ from datetime import datetime
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
+
 def date_string():
-    return datetime.now().strftime("%H:%M_%d-%m-%y")
+    return datetime.now().strftime("%y-%m-%d_%H:%M")
 
 
 def create_dir_from_path_if_not_exists(path):
