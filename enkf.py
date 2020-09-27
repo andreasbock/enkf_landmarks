@@ -82,7 +82,7 @@ class EnsembleKalmanFilter:
             else:
                 alpha *= 2
                 k += 1
-        print("!!! alpha regularisation failed to converge in {} iterations".format(self.max_iter_regularisation))
+        print("\t!!! alpha regularisation failed to converge in {} iterations".format(self.max_iter_regularisation))
         return cq_alpha_gamma_inv
 
     def _compute_cq_operator(self, q_mean):
@@ -111,7 +111,7 @@ class EnsembleKalmanFilter:
         while k < self.max_iter:
             print("Iteration ", k)
             self.predict()
-            self.dump_mean(k, target)
+            self.dump_mean(k)
             new_error = self.error_norm(self.target - self.Q.mean())
             self._errors.append(new_error)
             self._consensus.append(self.P.consensus())
@@ -128,20 +128,16 @@ class EnsembleKalmanFilter:
             k += 1
         self.dump_error()
         self.dump_consensus()
-        return self.P, self.Q.mean().detach().numpy()
+        return self.P
 
     def dump_error(self):
-        utils.pdump(self._errors, self.log_dir + 'errors.pickle')
+        utils.pdump(self._errors, self.log_dir + "errors.pickle")
 
     def dump_consensus(self):
-        utils.pdump(self._consensus, self.log_dir + 'consensus.pickle')
+        utils.pdump(self._consensus, self.log_dir + "consensus.pickle")
 
-    def dump_mean(self, k, target):
-        q_mean = self.Q.mean().detach().numpy()
-        utils.plot_landmarks(qs=q_mean,
-                             template=self.template,
-                             target=target,
-                             file_name=self.log_dir + f"PREDICTED_TARGET_iter={k}")
+    def dump_mean(self, k):
+        utils.pdump(self.Q.mean().detach().numpy(), self.log_dir + f"PREDICTED_TARGET_iter={k}.pickle")
 
     def dump_parameters(self):
         import os
