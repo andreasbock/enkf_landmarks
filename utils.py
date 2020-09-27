@@ -10,7 +10,7 @@ plt.rc('font', family='serif')
 
 
 def date_string():
-    return datetime.now().strftime("%y-%m-%d_%H:%M")
+    return datetime.now().strftime("%Y-%m-%d|%H:%M")
 
 
 def create_dir_from_path_if_not_exists(path):
