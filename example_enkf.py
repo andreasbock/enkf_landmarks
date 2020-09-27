@@ -1,19 +1,21 @@
+import os
+import glob
 import numpy as np
 
 from enkf import *
 import utils
 
 
-def run_enkf_on_target(data_dir):
+def run_enkf_on_target(data_dir, log_dir="./"):
     # where to dump results
-    log_dir = f"EXAMPLE_{utils.date_string()}/"
+    log_dir += f"EXAMPLE_{utils.date_string()}/"
 
     # 1) load initial ensemble and target from file
-    pe = MomentumEnsemble.load(data_dir + "pe.pickle")
-    target = utils.pload(data_dir + "target.pickle")
+    pe = MomentumEnsemble.load(data_dir + "/pe.pickle")
+    target = utils.pload(data_dir + "/target.pickle")
 
     # dump into log dir anyway
-    utils.pdump(pe.ensemble, log_dir + "p_initial.pickle")
+    pe.save(log_dir + "p_initial.pickle")
     utils.pdump(target, log_dir + "target.pickle")
 
     # 2) make a template to start from
@@ -35,15 +37,25 @@ def run_enkf_on_target(data_dir):
 
     # 4) set up and run Kalman filter
     ke = EnsembleKalmanFilter(template, target, log_dir=log_dir)
-    p, q = ke.run(pe, target)
+    p = ke.run(pe, target)
+    
+    # dump the results
+    p.save(log_dir + "p_result.pickle")
 
-    utils.pdump(p, log_dir + "p_result.pickle")
-    utils.pdump(q, log_dir + "final_q_mean.pickle")
+    # plot the results
+    utils.plot_errors(log_dir + "errors.pickle", log_dir + "errors.pdf")
+    utils.plot_consensus(log_dir + "consensus.pickle", log_dir + "errors.pdf")
 
-    utils.plot_errors(log_dir + "errors.pickle")
-    utils.plot_consensus(log_dir + "consensus.pickle")
+    target_pickles = glob.glob(log_dir + '/PREDICTED_TARGET_iter=*.pickle')
+    for target_pickle in target_pickles:
+        file_name, _ = os.path.splitext(target_pickle)
+        utils.plot_landmarks(qs=utils.pload(target_pickle),
+                             template=template,
+                             target=target,
+                             file_name=file_name)
 
 
 if __name__ == "__main__":
-    for i in range(1, 7):
-        run_enkf_on_target(f"./data/TARGET_{i}/")
+    # run the EnKF on all the manufactured solutions in the `data` directory
+    for target_data in glob.glob('./data/TARGET*'):
+        run_enkf_on_target(target_data)
