@@ -36,10 +36,10 @@ class Ensemble:
         utils.pdump(self.ensemble, file_name)
 
     @staticmethod
-    def load(file_name):
-        ens = Ensemble()
-        ens.ensemble = utils.pload(file_name)
-        return ens
+    def load(file_name, time_steps=10):
+        e = MomentumEnsemble(time_steps=time_steps)
+        e.ensemble = utils.pload(file_name)
+        return e
 
     def perturb(self, alpha, op=operator.mul):
         for i in range(self.size()):
@@ -51,8 +51,26 @@ class Ensemble:
         return self.ensemble[0].size()
 
 
+class MomentumEnsemble(Ensemble):
+
+    def __init__(self, time_steps=10):
+        super().__init__()
+        self.time_steps = time_steps
+
+        # Shooting/ODE parameters
+        sigma = torch.tensor([1], dtype=torch_dtype)
+        self.k = gauss_kernel(sigma=sigma)
+
+    def forward(self, template):
+        q = Ensemble()
+        for p in self.ensemble:
+            q_p = lddmm_forward(p, template, self.k, self.time_steps)[-1][1]
+            q.append(q_p)
+        return q
+
+
 def ensemble_normal(num_landmarks, ensemble_size, scale=1):
-    pe = Ensemble()
+    pe = MomentumEnsemble()
     for j in range(ensemble_size):
         p0_np = scale * utils.sample_normal(num_landmarks, 0, 1)
         p0 = torch.tensor(p0_np, dtype=torch_dtype, requires_grad=True)

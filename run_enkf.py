@@ -14,11 +14,11 @@ def run_enkf_on_target(data_dir):
     log_dir = f"EXAMPLE_{utils.date_string()}/"
 
     # 1) load initial ensemble and target from file
-    pe = Ensemble.load(data_dir + "pe.pickle")
+    pe = MomentumEnsemble.load(data_dir + "pe.pickle")
     target = utils.pload(data_dir + "target.pickle")
 
     # dump into log dir anyway
-    utils.pdump(pe, log_dir + "p_initial.pickle")
+    utils.pdump(pe.ensemble, log_dir + "p_initial.pickle")
     utils.pdump(target, log_dir + "target.pickle")
 
     # 2) make a template to start from
