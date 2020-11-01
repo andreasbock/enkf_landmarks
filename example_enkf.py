@@ -16,7 +16,8 @@ def run_enkf_on_target(data_dir, log_dir="./", use_manufactured_initial_momentum
 
     # 1) load target from file
     target = utils.pload(data_dir + "/target.pickle")
-    num_landmarks = 10
+    num_landmarks = len(target)
+
     # 2) make a unit circle template to start from
     template_numpy = utils.circle(num_landmarks)
     template = torch.tensor(template_numpy, dtype=torch_dtype, requires_grad=True)
