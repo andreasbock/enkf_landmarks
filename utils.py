@@ -1,5 +1,5 @@
 import numpy as np
-import pylab as plt
+import matplotlib.pyplot as plt
 import torch
 import pickle
 import os
@@ -82,7 +82,7 @@ def square(num_landmarks):
 # Plotting #
 ############
 
-def plot_landmarks(file_name, qs=None, template=None, target=None, title=None):
+def plot_landmarks(file_name, qs=None, template=None, target=None, title=None, landmark_label=None):
     create_dir_from_path_if_not_exists(file_name)
     if isinstance(qs, torch.Tensor):
         qs = qs.detach().numpy()
@@ -92,29 +92,28 @@ def plot_landmarks(file_name, qs=None, template=None, target=None, title=None):
         assert template is not None and target is not None
         template = template.detach().numpy()
         q0_ext = np.vstack((template, template[0, :]))
-        plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$q_0$', zorder=2)
+        plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$\mathbf{q}_0$', zorder=2)
         target = target.detach().numpy()
         q1_ext = np.vstack((target, target[0, :]))
-        plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$q_1$', zorder=2)
+        plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$\mathbf{q}_1$', zorder=2)
     elif len(qs.shape) == 2:
         qs_ext = np.vstack((qs, qs[0, :]))  # needs improving
-        plt.plot(qs_ext[:, 0], qs_ext[:, 1], c='k', lw=0.75, zorder=1)
+        plt.plot(qs_ext[:, 0], qs_ext[:, 1], c='k', lw=0.75, zorder=1, label=landmark_label)
         if template is not None:
             template = template.detach().numpy()
             q0_ext = np.vstack((template, template[0, :]))
-            plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$q_0$', zorder=2)
+            plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$\mathbf{q}_0$', zorder=2)
         if target is not None:
             target = target.detach().numpy()
             q1_ext = np.vstack((target, target[0, :]))
-            plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$q_1$', zorder=2)
-
+            plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$\mathbf{q}_1$', zorder=2)
     elif len(qs.shape) == 3:
         for i in range(len(qs[0])):
-            plt.plot(qs[:, i, 0], qs[:, i, 1], c='k', lw=0.75, zorder=1)
+            plt.plot(qs[:, i, 0], qs[:, i, 1], c='k', lw=0.75, zorder=1, label=landmark_label)
         template, target = qs[0, :, :], qs[-1, :, :]
         q0_ext, q1_ext = np.vstack((template, template[0, :])), np.vstack((target, target[0, :]))
-        plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$q_0$', zorder=2)
-        plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$q_1$', zorder=2)
+        plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$\mathbf{q}_0$', zorder=2)
+        plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$\mathbf{q}_1$', zorder=2)
     else:
         raise ValueError("Dimensions wrong.")
     if title:
@@ -151,7 +150,7 @@ def plot_consensus(consensus_path, file_name):
     plt.semilogy(range(len(consensus)), consensus)
 
     plt.xlabel(r'Iteration $k$')
-    plt.ylabel(r'$\textnormal{Cov}_{PP}^k$')
+    plt.ylabel(r'$\mathcal{S}^k$')
     plt.grid(linestyle='dotted')
     plt.savefig(file_name, bbox_inches='tight')
     plt.close()

@@ -1,4 +1,5 @@
 import os
+import re
 import glob
 import numpy as np
 
@@ -44,25 +45,34 @@ def run_enkf_on_target(data_dir, log_dir="./"):
 
 
 def dump_results(log_dir):
-
+    print(f"Dumping results into {log_dir}...")
+    log_dir += '/'
     template = utils.pload(log_dir + "template.pickle")
     target = utils.pload(log_dir + "target.pickle")
 
+    print("\t plotting errors...")
     utils.plot_errors(log_dir + "errors.pickle", log_dir + "errors.pdf")
+
+    print("\t plotting consensus...")
     utils.plot_consensus(log_dir + "consensus.pickle", log_dir + "consensus.pdf")
 
+    print("\t plotting weights...")
     w = utils.pload(log_dir + "weight_vector.pickle")
-    with open(log_dir + "weight_vector_norm.pickle") as file:
+    with open(log_dir + "weight_vector_norm.log", "w+") as file:
         file.write(f"Norm of w: {np.linalg.norm(w)}")
 
+    print("\t plotting landmarks...")
     target_pickles = glob.glob(log_dir + '/PREDICTED_TARGET_iter=*.pickle')
     for target_pickle in target_pickles:
+        k = int(re.search(r'\d+', os.path.basename(target_pickle)).group())
         file_name, _ = os.path.splitext(target_pickle)
         utils.plot_landmarks(qs=utils.pload(target_pickle),
                              template=template,
                              target=target,
-                             file_name=file_name)
+                             file_name=file_name,
+                             landmark_label="$F[P^{" + str(k) + "}]$")
 
+    print("\t plotting template and target...")
     utils.plot_landmarks(file_name=log_dir + "template_and_target",
                          template=template,
                          target=target)
