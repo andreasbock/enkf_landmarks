@@ -2,37 +2,39 @@ import os
 import re
 import glob
 import numpy as np
+import ensemble
 
 from enkf import *
 import utils
 
 
-def run_enkf_on_target(data_dir, log_dir="./"):
+def run_enkf_on_target(data_dir, log_dir="./", use_manufactured_initial_momentum=True):
+    ensemble_size = 10
+
     # where to dump results
     log_dir += f"EXAMPLE_{utils.date_string()}/"
 
-    # 1) load initial ensemble and target from file
-    pe = MomentumEnsemble.load(data_dir + "/pe.pickle")
+    # 1) load target from file
     target = utils.pload(data_dir + "/target.pickle")
-
-    # 2) make a template to start from
-    template_numpy = utils.circle(len(target))
+    num_landmarks = 10
+    # 2) make a unit circle template to start from
+    template_numpy = utils.circle(num_landmarks)
     template = torch.tensor(template_numpy, dtype=torch_dtype, requires_grad=True)
 
-    # dump into log dir anyway
+    # 3) Get initial momentum
+    if use_manufactured_initial_momentum:
+        pe = MomentumEnsemble.load(data_dir + "/pe.pickle")
+        low, high = -10, 10
+        w = [np.random.uniform(low, high) for _ in pe.ensemble]
+        utils.pdump(w, log_dir + "weight_vector.pickle")
+        pe.perturb(w)
+    else:
+        pe = ensemble.ensemble_normal(num_landmarks, ensemble_size, scale=1.5)
+
+    # dump stuff into log dir
     pe.save(log_dir + "p_initial.pickle")
     utils.pdump(template, log_dir + "template.pickle")
     utils.pdump(target, log_dir + "target.pickle")
-
-    # 3) perturb ensemble by either
-    #   A: adding noise:      p = p_target + \eta, \eta noise
-    #   B: multiplying noise: p = p_target + \eta, \eta noise
-    #       Note: this can be at ensemble level or element level!
-    low = -10
-    high = 10
-    w = [np.random.uniform(low, high) for _ in pe.ensemble]
-    utils.pdump(w, log_dir + "weight_vector.pickle")
-    pe.perturb(w)
 
     # 4) set up and run Kalman filter
     ke = EnsembleKalmanFilter(template, target, log_dir=log_dir)
@@ -81,5 +83,6 @@ def dump_results(log_dir):
 if __name__ == "__main__":
     # run the EnKF on all the manufactured solutions in the `data` directory
     for target_data in glob.glob('./data/TARGET*'):
-        log_dir = run_enkf_on_target(target_data)
+        log_dir = run_enkf_on_target(target_data, use_manufactured_initial_momentum=False)
         dump_results(log_dir)
+        break
