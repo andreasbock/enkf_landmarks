@@ -19,8 +19,9 @@ def manufacture_from_normal_distribution(log_dir=f"TARGET_{utils.date_string()}/
     pe = ensemble.ensemble_normal(num_landmarks, ensemble_size, mean=mean, std=std)
     target = ensemble.target_from_momentum_ensemble(pe, template)
 
-    # 3) Save the target, plot it and dump the initial momentum
+    # 3) Save the template, target and the initial ensemble & plot them
     pe.save(log_dir + "pe.pickle")
+    utils.pdump(template, log_dir + "template.pickle")
     utils.pdump(target, log_dir + "target.pickle")
     utils.plot_landmarks(file_name=log_dir + "template_and_target", template=template, target=target)
 
