@@ -59,11 +59,6 @@ def dump_results(log_dir):
     print("\t plotting consensus...")
     utils.plot_consensus(log_dir + "consensus.pickle", log_dir + "consensus.pdf")
 
-    print("\t plotting weights...")
-    w = utils.pload(log_dir + "weight_vector.pickle")
-    with open(log_dir + "weight_vector_norm.log", "w+") as file:
-        file.write(f"Norm of w: {np.linalg.norm(w)}")
-
     print("\t plotting landmarks...")
     target_pickles = glob.glob(log_dir + '/PREDICTED_TARGET_iter=*.pickle')
     for target_pickle in target_pickles:
@@ -80,10 +75,18 @@ def dump_results(log_dir):
                          template=template,
                          target=target)
 
+    # if we have used a perturbed version of the true initial ensemble
+    # as our initial ensemble then dump the perturbation vector
+    w_vector_path = log_dir + "weight_vector.pickle"
+    if os.path.exists(w_vector_path):
+        print("\t plotting weights...")
+        w = utils.pload(w_vector_path)
+        with open(log_dir + "weight_vector_norm.log") as file:
+            file.write(f"Norm of w: {np.linalg.norm(w)}")
+
 
 if __name__ == "__main__":
     # run the EnKF on all the manufactured solutions in the `data` directory
     for target_data in glob.glob('./data/TARGET*'):
         log_dir = run_enkf_on_target(target_data, use_manufactured_initial_momentum=False)
         dump_results(log_dir)
-        break
