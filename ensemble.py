@@ -69,12 +69,11 @@ class MomentumEnsemble(Ensemble):
         return q
 
 
-def ensemble_normal(num_landmarks, ensemble_size, scale=1):
+def ensemble_normal(num_landmarks, ensemble_size, mean=0, std=1):
     pe = MomentumEnsemble()
     for j in range(ensemble_size):
-        p0_np = scale * utils.sample_normal(num_landmarks, 0, 1)
-        p0 = torch.tensor(p0_np, dtype=torch_dtype, requires_grad=True)
-        pe.append(p0)
+        p0 = utils.sample_normal(num_landmarks, mean, std)
+        pe.append(torch.tensor(p0, dtype=torch_dtype, requires_grad=True))
     return pe
 
 
