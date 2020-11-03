@@ -30,7 +30,7 @@ def run_enkf_on_target(data_dir, log_dir="./", use_manufactured_initial_momentum
         utils.pdump(w, log_dir + "weight_vector.pickle")
         pe.perturb(w)
     else:
-        pe = ensemble.ensemble_normal(num_landmarks, ensemble_size, scale=1.5)
+        pe = ensemble.ensemble_normal(num_landmarks, ensemble_size, std=0.5)
 
     # dump stuff into log dir
     pe.save(log_dir + "p_initial.pickle")
@@ -85,8 +85,15 @@ def dump_results(log_dir):
             file.write(f"Norm of w: {np.linalg.norm(w)}")
 
 
-if __name__ == "__main__":
+if __name__ == "__main2__":
     # run the EnKF on all the manufactured solutions in the `data` directory
     for target_data in glob.glob('./data/TARGET*'):
+        log_dir = run_enkf_on_target(target_data, use_manufactured_initial_momentum=False)
+        dump_results(log_dir)
+
+
+if __name__ == "__main__":
+    # run the EnKF on all the manufactured solutions in the `data` directory
+    for target_data in glob.glob('./TARGET_2020-11*'):
         log_dir = run_enkf_on_target(target_data, use_manufactured_initial_momentum=False)
         dump_results(log_dir)
