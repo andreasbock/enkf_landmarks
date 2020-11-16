@@ -85,15 +85,8 @@ def dump_results(log_dir):
             file.write(f"Norm of w: {np.linalg.norm(w)}")
 
 
-if __name__ == "__main2__":
-    # run the EnKF on all the manufactured solutions in the `data` directory
-    for target_data in glob.glob('./data/TARGET*'):
-        log_dir = run_enkf_on_target(target_data, use_manufactured_initial_momentum=False)
-        dump_results(log_dir)
-
-
 if __name__ == "__main__":
     # run the EnKF on all the manufactured solutions in the `data` directory
-    for target_data in glob.glob('./TARGET_2020-11*'):
+    for target_data in glob.glob('./data/TARGET*'):
         log_dir = run_enkf_on_target(target_data, use_manufactured_initial_momentum=False)
         dump_results(log_dir)
