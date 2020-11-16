@@ -27,6 +27,7 @@ class EnsembleKalmanFilter:
         self.root_gamma = torch.tensor(la.sqrtm(self.gamma))
         self.P = MomentumEnsemble()  # stores momenta at t=0
         self.Q = Ensemble()  # stores shapes at t=1
+        self.use_regularisation = True
 
         # termination criteria for the error
         self.atol = 1e-05
@@ -70,6 +71,9 @@ class EnsembleKalmanFilter:
         lhs = self.rho * self.error_norm(self.target - q_mean)
         cq = self._compute_cq_operator(q_mean)
 
+        if not self.use_regularisation:
+            return cq
+
         k = 0
         alpha = self.alpha_0
         while k < self.max_iter_regularisation:
@@ -96,15 +100,16 @@ class EnsembleKalmanFilter:
         prod_gamma_x = torch.einsum('ij,kj->ki', self.root_gamma, x)
         return torch.sqrt(torch.einsum('ij,ij->', prod_gamma_x, prod_gamma_x))
 
-    def run(self, p, target):
+    def run(self, p, target, with_regularisation=True):
         self.P = p
+        self.use_regularisation = with_regularisation
 
         # dump the target corresponding to the initial guess `p`
         target_initial_guess = self.P.forward(self.template)
         utils.plot_landmarks(qs=target_initial_guess.mean().detach().numpy(),
                              template=self.template,
                              target=target,
-                             file_name=self.log_dir + f"PREDICTED_TARGET_INITIAL")
+                             file_name=self.log_dir + "template_and_target")
 
         k = 0
         error = float("-inf")  # initial error
@@ -152,6 +157,5 @@ class EnsembleKalmanFilter:
         fh.write("tau: {}\n".format(self.tau))
         fh.write("eta: {}\n".format(self.eta))
         fh.write("atol: {}\n".format(self.atol))
-        fh.write("template: {}\n".format(self.template))
-        fh.write("target: {}\n".format(self.target))
+        fh.write("regularised: {}\n".format(self.use_regularisation))
         fh.close()

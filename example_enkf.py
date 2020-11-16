@@ -8,11 +8,15 @@ from enkf import *
 import utils
 
 
-def run_enkf_on_target(data_dir, log_dir="./", use_manufactured_initial_momentum=True):
+def run_enkf_on_target(data_dir,
+                       log_dir="./",
+                       use_manufactured_initial_momentum=True,
+                       use_regularisation=True):
     ensemble_size = 10
 
     # where to dump results
-    log_dir += f"RESULT_{utils.date_string()}/"
+    REGULARISED = str(use_regularisation)
+    log_dir += f"RESULT_regularised={REGULARISED}_{utils.date_string()}/"
 
     # 1) load target from file
     target = utils.pload(data_dir + "/target.pickle")
@@ -39,7 +43,7 @@ def run_enkf_on_target(data_dir, log_dir="./", use_manufactured_initial_momentum
 
     # 4) set up and run Kalman filter
     ke = EnsembleKalmanFilter(template, target, log_dir=log_dir)
-    p = ke.run(pe, target)
+    p = ke.run(pe, target, with_regularisation=use_regularisation)
 
     # 5) dump or plot the results
     p.save(log_dir + "p_result.pickle")
@@ -87,6 +91,13 @@ def dump_results(log_dir):
 
 if __name__ == "__main__":
     # run the EnKF on all the manufactured solutions in the `data` directory
-    for target_data in glob.glob('./data/TARGET*'):
-        log_dir = run_enkf_on_target(target_data, use_manufactured_initial_momentum=False)
+
+    # with regularisation
+    for target_data in glob.glob('../data/TARGET*'):
+        log_dir = run_enkf_on_target(target_data)
+        dump_results(log_dir)
+
+    # and without
+    for target_data in glob.glob('../data/TARGET*'):
+        log_dir = run_enkf_on_target(target_data, use_regularisation=False)
         dump_results(log_dir)
