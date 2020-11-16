@@ -2,21 +2,23 @@ import os
 import re
 import glob
 import numpy as np
-import ensemble
+from pathlib import Path
 
-from enkf import *
-import utils
+import enkf_landmarks.ensemble as ensemble
+import enkf_landmarks.utils as utils
+from enkf_landmarks.enkf import *
 
 
 def run_enkf_on_target(data_dir,
-                       log_dir="./",
+                       log_dir='../',
                        use_manufactured_initial_momentum=True,
                        use_regularisation=True):
     ensemble_size = 10
 
     # where to dump results
-    REGULARISED = str(use_regularisation)
-    log_dir += f"RESULT_regularised={REGULARISED}_{utils.date_string()}/"
+    regularised = str(use_regularisation)
+    target_name = os.path.basename(data_dir).lstrip('TARGET_')
+    log_dir += f"RESULT_{target_name}_regularised={regularised}_{utils.date_string()}/"
 
     # 1) load target from file
     target = utils.pload(data_dir + "/target.pickle")
@@ -91,13 +93,14 @@ def dump_results(log_dir):
 
 if __name__ == "__main__":
     # run the EnKF on all the manufactured solutions in the `data` directory
+    target_paths = Path('../data/').glob('TARGET*')
 
     # with regularisation
-    for target_data in glob.glob('../data/TARGET*'):
-        log_dir = run_enkf_on_target(target_data)
+    for target_path in target_paths:
+        log_dir = run_enkf_on_target(str(target_path))
         dump_results(log_dir)
 
     # and without
-    for target_data in glob.glob('../data/TARGET*'):
-        log_dir = run_enkf_on_target(target_data, use_regularisation=False)
+    for target_path in target_paths:
+        log_dir = run_enkf_on_target(str(target_path), use_regularisation=False)
         dump_results(log_dir)

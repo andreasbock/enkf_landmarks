@@ -1,6 +1,7 @@
 import torch
-import utils
-from lddmm import shoot
+
+import enkf_landmarks.utils as utils
+from enkf_landmarks.lddmm import shoot
 
 torch_dtype = torch.float32
 

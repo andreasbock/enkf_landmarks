@@ -2,8 +2,8 @@ import torch
 import math
 import scipy.linalg as la
 
-import utils
-from ensemble import MomentumEnsemble, Ensemble
+import enkf_landmarks.utils as utils
+from enkf_landmarks.ensemble import MomentumEnsemble, Ensemble
 
 torch_dtype = torch.float32
 
@@ -18,9 +18,9 @@ class EnsembleKalmanFilter:
         self.num_landmarks = template.shape[0]
 
         # EnKF parameters
-        self.alpha_0 = 2
+        self.alpha_0 = 1
         self.max_iter_regularisation = 1
-        self.rho = 0.01                   # \rho \in (0, 1)
+        self.rho = 0.01                  # \rho \in (0, 1)
         self.tau = 1 / self.rho + 1e-04  # \tau > 1/\rho
         self.eta = 1e-05                 # noise limit
         self.gamma = torch.eye(self.dim, dtype=torch_dtype)
