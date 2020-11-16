@@ -12,7 +12,7 @@ def run_enkf_on_target(data_dir, log_dir="./", use_manufactured_initial_momentum
     ensemble_size = 10
 
     # where to dump results
-    log_dir += f"EXAMPLE_{utils.date_string()}/"
+    log_dir += f"RESULT_{utils.date_string()}/"
 
     # 1) load target from file
     target = utils.pload(data_dir + "/target.pickle")
