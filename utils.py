@@ -15,7 +15,7 @@ def date_string():
 
 def create_dir_from_path_if_not_exists(path):
     path = os.path.dirname(path)
-    if not os.path.exists(path):
+    if not os.path.exists(path) and path != '':
         os.makedirs(path)
 
 
@@ -41,16 +41,16 @@ def pload(file_name):
 def circle(num_landmarks, scale=1, shift=0):
     thetas = np.linspace(0, 2 * np.pi, num=num_landmarks + 1)[:-1]
     positions = scale * np.array([[np.cos(x), np.sin(x)] for x in thetas])
-    return positions + shift
+    return positions + np.array([shift, shift])
 
 
 def triangle(num_landmarks):
     if num_landmarks % 3 != 0:
         raise Exception("Want a nice image, so satisfy 'num_landmarks % 3 == 0' !")
 
-    a = np.array([1e-06, .7])  # lazy with sign(0) in reflection
-    b = np.array([-.7, 0])
-    c = np.array([.7, 0])
+    a = np.array([1e-06, .3])  # lazy with sign(0) in reflection
+    b = np.array([-.3, 0])
+    c = np.array([.3, 0])
 
     # interpolate between them to generate points
     ss = num_landmarks // 3
@@ -63,14 +63,14 @@ def triangle(num_landmarks):
     return np.array(q0_a + q0_b + q0_c)
 
 
-def square(num_landmarks):
-    if num_landmarks % 5 != 0:
+def rectangle(num_landmarks):
+    if num_landmarks % 4 != 0:
         raise Exception("Want a nice image, so satisfy 'num_landmarks % 4 == 0' !")
 
-    a = np.array([0, 0])
-    b = np.array([0, 1])
-    c = np.array([1, 1])
-    d = np.array([1, 0])
+    a = np.array([1, 1])
+    b = np.array([2, 1])
+    c = np.array([2, 2])
+    d = np.array([1, 2])
 
     # interpolate between them to generate points
     ss = num_landmarks // 4
@@ -82,7 +82,17 @@ def square(num_landmarks):
 # Plotting #
 ############
 
-def plot_landmarks(file_name, qs=None, template=None, target=None, title=None, landmark_label=None):
+def plot_landmarks(file_name,
+                   qs=None,
+                   template=None,
+                   target=None,
+                   title=None,
+                   template_label='$\mathbf{q}_0$',
+                   target_label='$\mathbf{q}_1$',
+                   landmark_label='$\mathbf{q}_{\{0<t<1\}}$'
+                   ):
+    # TODO: fix this mess
+
     create_dir_from_path_if_not_exists(file_name)
     if isinstance(qs, torch.Tensor):
         qs = qs.detach().numpy()
@@ -92,28 +102,31 @@ def plot_landmarks(file_name, qs=None, template=None, target=None, title=None, l
         assert template is not None and target is not None
         template = template.detach().numpy()
         q0_ext = np.vstack((template, template[0, :]))
-        plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$\mathbf{q}_0$', zorder=2)
+        plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label=template_label, zorder=2)
         target = target.detach().numpy()
         q1_ext = np.vstack((target, target[0, :]))
-        plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$\mathbf{q}_1$', zorder=2)
+        plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label=target_label, zorder=2)
     elif len(qs.shape) == 2:
         qs_ext = np.vstack((qs, qs[0, :]))  # needs improving
         plt.plot(qs_ext[:, 0], qs_ext[:, 1], c='k', lw=0.75, zorder=1, label=landmark_label)
         if template is not None:
             template = template.detach().numpy()
             q0_ext = np.vstack((template, template[0, :]))
-            plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$\mathbf{q}_0$', zorder=2)
+            plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label=template_label, zorder=2)
         if target is not None:
             target = target.detach().numpy()
             q1_ext = np.vstack((target, target[0, :]))
-            plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$\mathbf{q}_1$', zorder=2)
+            plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label=target_label, zorder=2)
     elif len(qs.shape) == 3:
-        for i in range(len(qs[0])):
-            plt.plot(qs[:, i, 0], qs[:, i, 1], c='k', lw=0.75, zorder=1, label=landmark_label)
+        for i in range(len(qs[0]) - 1):
+            plt.plot(qs[:, i, 0], qs[:, i, 1], c='k', lw=0.75, zorder=1)
+        # plot last one with label
+        plt.plot(qs[:, -1, 0], qs[:, -1, 1], c='k', lw=0.75, zorder=1, label=landmark_label)
+
         template, target = qs[0, :, :], qs[-1, :, :]
         q0_ext, q1_ext = np.vstack((template, template[0, :])), np.vstack((target, target[0, :]))
-        plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label='$\mathbf{q}_0$', zorder=2)
-        plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label='$\mathbf{q}_1$', zorder=2)
+        plt.plot(q0_ext[:, 0], q0_ext[:, 1], c='b', marker='o', label=template_label, zorder=2)
+        plt.plot(q1_ext[:, 0], q1_ext[:, 1], c='r', marker='x', label=target_label, zorder=2)
     else:
         raise ValueError("Dimensions wrong.")
     if title:

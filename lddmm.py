@@ -76,7 +76,10 @@ def lddmm_loss(k, nt, q1):
     return loss
 
 
-def shoot(q0, q1, nt, sigma, p0=None, epochs=15):
+_default_landmark_size = torch.tensor([0.01], dtype=torch_dtype)
+
+
+def shoot(q0, q1, nt, sigma=_default_landmark_size, p0=None, epochs=15):
     k = gauss_kernel(sigma=sigma)
     loss = lddmm_loss(k, nt, q1)
 
