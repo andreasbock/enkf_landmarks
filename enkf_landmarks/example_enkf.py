@@ -5,7 +5,6 @@ import numpy as np
 from pathlib import Path
 
 import enkf_landmarks.ensemble as ensemble
-import enkf_landmarks.utils as utils
 from enkf_landmarks.enkf import *
 
 
@@ -31,11 +30,9 @@ def run_enkf_on_target(data_dir,
     # 3) Get initial momentum
     if use_manufactured_initial_momentum:
         pe = MomentumEnsemble.load(data_dir + "/pe.pickle")
-        low, high = -10, 10
-        w = [np.random.uniform(low, high) for _ in pe.ensemble]
-        utils.pdump(w, log_dir + "weight_vector.pickle")
-        pe.perturb(w)
     else:
+        # we generate a new ensemble by sampling normals but we could also use the
+        # method pe.perturb(w) to use the true momentum multiplied by some vector `w`
         pe = ensemble.ensemble_normal(num_landmarks, ensemble_size, std=0.5)
 
     # dump stuff into log dir
