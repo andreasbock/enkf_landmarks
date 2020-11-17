@@ -143,7 +143,6 @@ class EnsembleKalmanFilter:
     def dump_error(self):
         utils.pdump(self._errors, self.log_dir + "errors.pickle")
 
-
     def dump_consensus(self):
         utils.pdump(self._consensus, self.log_dir + "consensus.pickle")
 
