@@ -1,5 +1,6 @@
-import torch
+import time
 import math
+import torch
 import scipy.linalg as la
 
 import enkf_landmarks.utils as utils
@@ -110,7 +111,7 @@ class EnsembleKalmanFilter:
                              template=self.template,
                              target=target,
                              file_name=self.log_dir + "template_and_target")
-
+        start = time.time()
         k = 0
         error = float("-inf")  # initial error
         while k < self.max_iter:
@@ -131,12 +132,17 @@ class EnsembleKalmanFilter:
                 self.correct()
                 error = new_error
             k += 1
+        end = time.time()
+
+        utils.pdump(end - start, self.log_dir + "run_time.pickle")
         self.dump_error()
         self.dump_consensus()
+
         return self.P
 
     def dump_error(self):
         utils.pdump(self._errors, self.log_dir + "errors.pickle")
+
 
     def dump_consensus(self):
         utils.pdump(self._consensus, self.log_dir + "consensus.pickle")
