@@ -87,7 +87,7 @@ def dump_results(log_dir):
     if os.path.exists(w_vector_path):
         print("\t plotting weights...")
         w = utils.pload(w_vector_path)
-        with open(log_dir + "weight_vector_norm.log") as file:
+        with open(log_dir + "weight_vector_norm.log", "w+") as file:
             file.write(f"Norm of w: {np.linalg.norm(w)}")
 
 
