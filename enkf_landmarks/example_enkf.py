@@ -4,48 +4,36 @@ import glob
 import numpy as np
 from pathlib import Path
 
-import enkf_landmarks.ensemble as ensemble
 from enkf_landmarks.enkf import *
 
 
 def run_enkf_on_target(data_dir,
                        log_dir='../',
-                       use_manufactured_initial_momentum=True,
                        use_regularisation=True):
-    ensemble_size = 10
 
     # where to dump results
     regularised = str(use_regularisation)
     target_name = os.path.basename(data_dir).lstrip('TARGET_')
     log_dir += f"RESULT_{target_name}_regularised={regularised}_{utils.date_string()}/"
 
-    # 1) load target from file
+    # 1) load template and target from file
+    template = utils.pload(data_dir + "/template.pickle")
     target = utils.pload(data_dir + "/target.pickle")
-    num_landmarks = len(target)
 
-    # 2) make a unit circle template to start from
-    template_numpy = utils.circle(num_landmarks)
-    template = torch.tensor(template_numpy, dtype=torch_dtype, requires_grad=True)
-
-    # 3) Get initial momentum
-    if use_manufactured_initial_momentum:
-        pe = MomentumEnsemble.load(data_dir + "/pe.pickle")
-    else:
-        # we generate a new ensemble by sampling normals but we could also use the
-        # method pe.perturb(w) to use the true momentum multiplied by some vector `w`
-        pe = ensemble.ensemble_normal(num_landmarks, ensemble_size, std=0.5)
+    # 2) load initial momentum
+    pe = MomentumEnsemble.load(data_dir + "/pe_initial.pickle")
 
     # dump stuff into log dir
-    pe.save(log_dir + "p_initial.pickle")
+    pe.save(log_dir + "pe_initial.pickle")
     utils.pdump(template, log_dir + "template.pickle")
     utils.pdump(target, log_dir + "target.pickle")
 
     # 4) set up and run Kalman filter
     ke = EnsembleKalmanFilter(template, target, log_dir=log_dir)
-    p = ke.run(pe, target, with_regularisation=use_regularisation)
+    pe_result = ke.run(pe, target, with_regularisation=use_regularisation)
 
-    # 5) dump or plot the results
-    p.save(log_dir + "p_result.pickle")
+    # 5) dump the results
+    pe_result.save(log_dir + "pe_result.pickle")
 
     return log_dir
 
