@@ -124,16 +124,15 @@ class EnsembleKalmanFilter:
         k = 0
         error = float("-inf")  # initial error
         while k < self.max_iter:
-            self.logger.info("Iteration {}".format(k))
             self.predict()
             self.dump_mean(k)
             new_error = self.error_norm(self.target - self.Q.mean())
             self._errors.append(new_error)
             self._consensus.append(self.P.consensus())
 
-            self.logger.info("\t --> error norm: {}".format(new_error))
+            self.logger.info("Iteration {} | Error norm: {}".format(k, new_error))
             if math.isnan(new_error):
-                self.logger.debug("Error is NaN (regularisation issues?), terminating filter.")
+                self.logger.critical("Error is NaN (regularisation issues?), terminating filter.")
                 break
             elif math.fabs(new_error - error) < self.atol:
                 self.logger.info("No improvement in residual, terminating filter")
@@ -145,8 +144,9 @@ class EnsembleKalmanFilter:
                 error = new_error
             k += 1
         end = time.time()
-        utils.pdump(end - start, self.log_dir + "run_time.pickle")
-        self.logger.info(f"Filter terminated in {end - start} seconds. Logged to {self.log_dir + 'run_time.pickle'}.")
+        time_elapsed = time.strftime('%H:%M:%S', time.gmtime(end - start))
+        utils.pdump(time_elapsed, self.log_dir + "run_time.pickle")
+        self.logger.info(f"Filter run time: {time_elapsed}. Logged to {self.log_dir + 'run_time.pickle'}.")
 
         self.dump_error()
         self.dump_consensus()
