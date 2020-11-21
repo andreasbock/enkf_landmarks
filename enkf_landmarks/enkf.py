@@ -123,7 +123,10 @@ class EnsembleKalmanFilter:
             self._consensus.append(self.P.consensus())
 
             print("\t --> error norm: {}".format(new_error))
-            if math.fabs(new_error-error) < self.atol:
+            if math.isnan(new_error):
+                print("Error is NaN (regularisation issues?), terminating filter.")
+                break
+            elif math.fabs(new_error - error) < self.atol:
                 print("No improvement in residual, terminating filter")
                 break
             elif new_error <= self.tau*self.eta:
