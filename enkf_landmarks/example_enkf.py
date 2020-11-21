@@ -78,7 +78,7 @@ def dump_results(log_dir):
 
 if __name__ == "__main__":
     # run the EnKF on all the manufactured solutions in the `data` directory
-    target_paths = Path('../data/').glob('TARGET*')
+    target_paths = sorted(Path('../data/').glob('TARGET*'))
 
     # with regularisation
     for target_path in target_paths:
