@@ -1,6 +1,7 @@
 import time
 import math
 import torch
+import logging
 import scipy.linalg as la
 
 import enkf_landmarks.utils as utils
@@ -35,9 +36,18 @@ class EnsembleKalmanFilter:
         self.max_iter = 50
 
         # internals for logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s [%(levelname)s] %(message)s',
+            handlers=[
+                logging.FileHandler(log_dir + "enkf.log"),
+                logging.StreamHandler()
+            ]
+        )
+        self.logger = logging.getLogger()
+
         self._errors = []
         self._consensus = []
-
         self.dump_parameters()
 
     def predict(self):
@@ -87,7 +97,6 @@ class EnsembleKalmanFilter:
             else:
                 alpha *= 2
                 k += 1
-        print("\t!!! alpha regularisation failed to converge in {} iterations".format(self.max_iter_regularisation))
         return cq_alpha_gamma_inv
 
     def _compute_cq_operator(self, q_mean):
@@ -115,19 +124,19 @@ class EnsembleKalmanFilter:
         k = 0
         error = float("-inf")  # initial error
         while k < self.max_iter:
-            print("Iteration ", k)
+            self.logger.info("Iteration {}".format(k))
             self.predict()
             self.dump_mean(k)
             new_error = self.error_norm(self.target - self.Q.mean())
             self._errors.append(new_error)
             self._consensus.append(self.P.consensus())
 
-            print("\t --> error norm: {}".format(new_error))
+            self.logger.info("\t --> error norm: {}".format(new_error))
             if math.isnan(new_error):
-                print("Error is NaN (regularisation issues?), terminating filter.")
+                self.logger.debug("Error is NaN (regularisation issues?), terminating filter.")
                 break
             elif math.fabs(new_error - error) < self.atol:
-                print("No improvement in residual, terminating filter")
+                self.logger.info("No improvement in residual, terminating filter")
                 break
             elif new_error <= self.tau*self.eta:
                 break
@@ -136,8 +145,9 @@ class EnsembleKalmanFilter:
                 error = new_error
             k += 1
         end = time.time()
-
         utils.pdump(end - start, self.log_dir + "run_time.pickle")
+        self.logger.info(f"Filter terminated in {end - start} seconds. Logged to {self.log_dir + 'run_time.pickle'}.")
+
         self.dump_error()
         self.dump_consensus()
 
@@ -153,17 +163,12 @@ class EnsembleKalmanFilter:
         utils.pdump(self.Q.mean().detach().numpy(), self.log_dir + f"PREDICTED_TARGET_iter={k}.pickle")
 
     def dump_parameters(self):
-        import os
-        if not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir)
-        fh = open(self.log_dir + 'enkf_parameters.log', 'w')
-        fh.write("max_iter: {}\n".format(self.max_iter))
-        fh.write("num_landmarks: {}\n".format(self.num_landmarks))
-        fh.write("Gamma: {}\n".format(self.gamma))
-        fh.write("alpha_0: {}\n".format(self.alpha_0))
-        fh.write("rho: {}\n".format(self.rho))
-        fh.write("tau: {}\n".format(self.tau))
-        fh.write("eta: {}\n".format(self.eta))
-        fh.write("atol: {}\n".format(self.atol))
-        fh.write("regularised: {}\n".format(self.use_regularisation))
-        fh.close()
+        self.logger.info("max_iter: {}".format(self.max_iter))
+        self.logger.info("num_landmarks: {}".format(self.num_landmarks))
+        self.logger.info("Gamma: {}".format(self.gamma))
+        self.logger.info("alpha_0: {}".format(self.alpha_0))
+        self.logger.info("rho: {}".format(self.rho))
+        self.logger.info("tau: {}".format(self.tau))
+        self.logger.info("eta: {}".format(self.eta))
+        self.logger.info("atol: {}".format(self.atol))
+        self.logger.info("regularised: {}".format(self.use_regularisation))
