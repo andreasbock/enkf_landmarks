@@ -12,7 +12,7 @@ torch_dtype = torch.float32
 
 class EnsembleKalmanFilter:
 
-    def __init__(self, template, target, log_dir='./'):
+    def __init__(self, template, target, log_dir='./', max_iter=50):
         self.target = target
         self.template = template
         self.log_dir = log_dir
@@ -33,7 +33,7 @@ class EnsembleKalmanFilter:
 
         # termination criteria for the error
         self.atol = 1e-05
-        self.max_iter = 50
+        self.max_iter = max_iter
 
         # internals for logging
         logging.basicConfig(
