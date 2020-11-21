@@ -35,22 +35,27 @@ def run_enkf_on_target(data_dir,
     # 5) dump the results
     pe_result.save(log_dir + "pe_result.pickle")
 
-    return log_dir
+    # if we have used a perturbed version of the true initial ensemble
+    # as our initial ensemble then dump the perturbation vector
+    w_vector_path = data_dir + "/weight_vector.pickle"
+    if os.path.exists(w_vector_path):
+        w = utils.pload(w_vector_path)
+        distance_from_unit = np.linalg.norm(w - np.eye(len(w)))
+        ke.logger.info(f"Weight vector used has norm: {np.linalg.norm(w)}, l^2 distance from the unit vector: "
+                       f"{distance_from_unit}.")
 
-
-def dump_results(log_dir):
-    print(f"Dumping results into {log_dir}...")
+    ke.logger.info(f"Dumping results into {log_dir}...")
     log_dir += '/'
     template = utils.pload(log_dir + "template.pickle")
     target = utils.pload(log_dir + "target.pickle")
 
-    print("\t plotting errors...")
+    ke.logger.info("Plotting errors...")
     utils.plot_errors(log_dir + "errors.pickle", log_dir + "errors.pdf")
 
-    print("\t plotting consensus...")
+    ke.logger.info("Plotting consensus...")
     utils.plot_consensus(log_dir + "consensus.pickle", log_dir + "consensus.pdf")
 
-    print("\t plotting landmarks...")
+    ke.logger.info("Plotting landmarks...")
     target_pickles = glob.glob(log_dir + '/PREDICTED_TARGET_iter=*.pickle')
     for target_pickle in target_pickles:
         k = int(re.search(r'\d+', os.path.basename(target_pickle)).group())
@@ -61,31 +66,16 @@ def dump_results(log_dir):
                              file_name=file_name,
                              landmark_label="$F[P^{" + str(k) + "}]$")
 
-    print("\t plotting template and target...")
+    ke.logger.info("Plotting template and target...")
     utils.plot_landmarks(file_name=log_dir + "template_and_target",
                          template=template,
                          target=target)
-
-    # if we have used a perturbed version of the true initial ensemble
-    # as our initial ensemble then dump the perturbation vector
-    w_vector_path = log_dir + "weight_vector.pickle"
-    if os.path.exists(w_vector_path):
-        print("\t plotting weights...")
-        w = utils.pload(w_vector_path)
-        with open(log_dir + "weight_vector_norm.log", "w+") as file:
-            file.write(f"Norm of w: {np.linalg.norm(w)}")
 
 
 if __name__ == "__main__":
     # run the EnKF on all the manufactured solutions in the `data` directory
     target_paths = sorted(Path('../data/').glob('TARGET*'))
 
-    # with regularisation
     for target_path in target_paths:
-        log_dir = run_enkf_on_target(str(target_path))
-        dump_results(log_dir)
-
-    # and without
-    for target_path in target_paths:
-        log_dir = run_enkf_on_target(str(target_path), use_regularisation=False)
-        dump_results(log_dir)
+        run_enkf_on_target(str(target_path))
+        run_enkf_on_target(str(target_path), use_regularisation=False)
