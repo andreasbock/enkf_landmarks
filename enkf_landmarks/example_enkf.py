@@ -21,7 +21,7 @@ def run_enkf_on_target(data_dir,
     target = utils.pload(data_dir + "/target.pickle")
 
     # 2) set up filter
-    ke = EnsembleKalmanFilter(template, target, log_dir=log_dir, max_iter=2)
+    ke = EnsembleKalmanFilter(template, target, log_dir=log_dir)
 
     # 3) load initial momentum
     pe = MomentumEnsemble.load(data_dir + "/pe_initial.pickle")
