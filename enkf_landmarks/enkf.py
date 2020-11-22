@@ -1,3 +1,5 @@
+import os
+import sys
 import time
 import math
 import torch
@@ -36,16 +38,7 @@ class EnsembleKalmanFilter:
         self.max_iter = max_iter
 
         # internals for logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s [%(levelname)s] %(message)s',
-            handlers=[
-                logging.FileHandler(log_dir + "enkf.log"),
-                logging.StreamHandler()
-            ]
-        )
-        self.logger = logging.getLogger()
-
+        self.logger = self.setup_logger()
         self._errors = []
         self._consensus = []
         self.dump_parameters()
@@ -172,3 +165,23 @@ class EnsembleKalmanFilter:
         self.logger.info("eta: {}".format(self.eta))
         self.logger.info("atol: {}".format(self.atol))
         self.logger.info("regularised: {}".format(self.use_regularisation))
+
+    def setup_logger(self):
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
+
+        logger_name = self.log_dir + '/enkf.log'
+        logger = logging.getLogger(logger_name)
+
+        logger.setLevel(logging.INFO)
+        format_string = "%(asctime)s [%(levelname)s] %(funcName)s: %(message)s"
+        log_format = logging.Formatter(format_string)
+        # Creating and adding the console handler
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(log_format)
+        logger.addHandler(console_handler)
+        # Creating and adding the file handler
+        file_handler = logging.FileHandler(logger_name)
+        file_handler.setFormatter(log_format)
+        logger.addHandler(file_handler)
+        return logger

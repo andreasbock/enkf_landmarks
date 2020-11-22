@@ -20,7 +20,10 @@ def run_enkf_on_target(data_dir,
     template = utils.pload(data_dir + "/template.pickle")
     target = utils.pload(data_dir + "/target.pickle")
 
-    # 2) load initial momentum
+    # 2) set up filter
+    ke = EnsembleKalmanFilter(template, target, log_dir=log_dir, max_iter=2)
+
+    # 3) load initial momentum
     pe = MomentumEnsemble.load(data_dir + "/pe_initial.pickle")
 
     # dump stuff into log dir
@@ -28,8 +31,10 @@ def run_enkf_on_target(data_dir,
     utils.pdump(template, log_dir + "template.pickle")
     utils.pdump(target, log_dir + "target.pickle")
 
-    # 4) set up and run Kalman filter
-    ke = EnsembleKalmanFilter(template, target, log_dir=log_dir)
+    # 4) run Kalman filter
+    ke.logger.info(f"Loaded data from {data_dir}.")
+    ke.logger.info(f"Dumping files to {log_dir}.")
+    ke.logger.info("Running EnKF...")
     pe_result = ke.run(pe, target, with_regularisation=use_regularisation)
 
     # 5) dump the results
