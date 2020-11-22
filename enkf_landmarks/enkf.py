@@ -31,7 +31,6 @@ class EnsembleKalmanFilter:
         self.root_gamma = torch.tensor(la.sqrtm(self.gamma))
         self.P = MomentumEnsemble()  # stores momenta at t=0
         self.Q = Ensemble()  # stores shapes at t=1
-        self.use_regularisation = True
 
         # termination criteria for the error
         self.atol = 1e-05
@@ -75,9 +74,6 @@ class EnsembleKalmanFilter:
         lhs = self.rho * self.error_norm(self.target - q_mean)
         cq = self._compute_cq_operator(q_mean)
 
-        if not self.use_regularisation:
-            return cq
-
         k = 0
         alpha = self.alpha_0
         while k < self.max_iter_regularisation:
@@ -103,9 +99,9 @@ class EnsembleKalmanFilter:
         prod_gamma_x = torch.einsum('ij,kj->ki', self.root_gamma, x)
         return torch.sqrt(torch.einsum('ij,ij->', prod_gamma_x, prod_gamma_x))
 
-    def run(self, p, target, with_regularisation=True):
+    def run(self, p, target, regularisation=1):
         self.P = p
-        self.use_regularisation = with_regularisation
+        self.alpha_0 = regularisation
 
         # dump the target corresponding to the initial guess `p`
         target_initial_guess = self.P.forward(self.template)
@@ -159,9 +155,7 @@ class EnsembleKalmanFilter:
         self.logger.info("max_iter: {}".format(self.max_iter))
         self.logger.info("num_landmarks: {}".format(self.num_landmarks))
         self.logger.info("Gamma: {}".format(self.gamma))
-        self.logger.info("regularised: {}".format(self.use_regularisation))
-        if self.use_regularisation:
-            self.logger.info("alpha_0: {} (regularising parameter)".format(self.alpha_0))
+        self.logger.info("alpha_0: {} (regularising parameter)".format(self.alpha_0))
         self.logger.info("rho: {}".format(self.rho))
         self.logger.info("tau: {}".format(self.tau))
         self.logger.info("eta: {}".format(self.eta))
@@ -175,7 +169,7 @@ class EnsembleKalmanFilter:
         logger = logging.getLogger(logger_name)
 
         logger.setLevel(logging.INFO)
-        format_string = "%(asctime)s [%(levelname)s] %(funcName)s: %(message)s"
+        format_string = "%(asctime)s [%(levelname)s]: %(message)s"
         log_format = logging.Formatter(format_string)
 
         # Creating and adding the console handler

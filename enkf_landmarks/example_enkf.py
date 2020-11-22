@@ -9,12 +9,11 @@ from enkf_landmarks.enkf import *
 
 def run_enkf_on_target(data_dir,
                        log_dir='../',
-                       use_regularisation=True):
+                       regularisation=1.):
 
     # where to dump results
-    regularised = str(use_regularisation)
     target_name = os.path.basename(data_dir).lstrip('TARGET_')
-    log_dir += f"RESULT_{target_name}_regularised={regularised}_{utils.date_string()}/"
+    log_dir += f"RESULT_{target_name}_regularisation={regularisation}_{utils.date_string()}/"
 
     # 1) load template and target from file
     template = utils.pload(data_dir + "/template.pickle")
@@ -35,7 +34,7 @@ def run_enkf_on_target(data_dir,
     ke.logger.info(f"Loaded data from {data_dir}.")
     ke.logger.info(f"Dumping files to {log_dir}.")
     ke.logger.info("Running EnKF...")
-    pe_result = ke.run(pe, target, with_regularisation=use_regularisation)
+    pe_result = ke.run(pe, target, regularisation=regularisation)
 
     # 5) dump the results
     pe_result.save(log_dir + "pe_result.pickle")
@@ -82,5 +81,6 @@ if __name__ == "__main__":
     target_paths = sorted(Path('../data/').glob('TARGET*'))
 
     for target_path in target_paths:
-        run_enkf_on_target(str(target_path))
-        run_enkf_on_target(str(target_path), use_regularisation=False)
+        run_enkf_on_target(str(target_path), regularisation=0.1)
+        run_enkf_on_target(str(target_path), regularisation=1)
+        run_enkf_on_target(str(target_path), regularisation=5)
