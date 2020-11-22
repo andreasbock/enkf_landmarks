@@ -82,6 +82,5 @@ def target_from_momentum_ensemble(pe, template, time_steps=10, landmark_size=1):
     K = gauss_kernel(sigma=sigma)
     target = torch.zeros(pe.element_dimension())
     for p in pe.ensemble:
-        # Example 2: Normal distribution
         target += lddmm_forward(p, template, K, time_steps)[-1][1]
     return target / pe.size()
