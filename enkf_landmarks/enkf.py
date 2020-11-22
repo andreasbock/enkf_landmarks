@@ -159,12 +159,13 @@ class EnsembleKalmanFilter:
         self.logger.info("max_iter: {}".format(self.max_iter))
         self.logger.info("num_landmarks: {}".format(self.num_landmarks))
         self.logger.info("Gamma: {}".format(self.gamma))
-        self.logger.info("alpha_0: {}".format(self.alpha_0))
+        self.logger.info("regularised: {}".format(self.use_regularisation))
+        if self.use_regularisation:
+            self.logger.info("alpha_0: {} (regularising parameter)".format(self.alpha_0))
         self.logger.info("rho: {}".format(self.rho))
         self.logger.info("tau: {}".format(self.tau))
         self.logger.info("eta: {}".format(self.eta))
-        self.logger.info("atol: {}".format(self.atol))
-        self.logger.info("regularised: {}".format(self.use_regularisation))
+        self.logger.info("atol: {}  (error tolerance)".format(self.atol))
 
     def setup_logger(self):
         if not os.path.exists(self.log_dir):
