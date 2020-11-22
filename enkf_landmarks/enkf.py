@@ -177,10 +177,12 @@ class EnsembleKalmanFilter:
         logger.setLevel(logging.INFO)
         format_string = "%(asctime)s [%(levelname)s] %(funcName)s: %(message)s"
         log_format = logging.Formatter(format_string)
+
         # Creating and adding the console handler
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(log_format)
         logger.addHandler(console_handler)
+
         # Creating and adding the file handler
         file_handler = logging.FileHandler(logger_name)
         file_handler.setFormatter(log_format)
