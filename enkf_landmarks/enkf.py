@@ -21,7 +21,10 @@ class EnsembleKalmanFilter:
         self.dim = template.shape[1]
         self.num_landmarks = template.shape[0]
 
-        # EnKF parameters
+        # EnKF parameters mimicking those in:
+        # Iglesias, Marco A. "A regularizing iterative ensemble Kalman method for PDE-constrained inverse problems."
+        # Inverse Problems 32.2 (2016): 025002.
+        # The are implemented here for future use, but in practice do not affect the current results.
         self.alpha_0 = 1
         self.max_iter_regularisation = 1
         self.rho = 0.01                  # \rho \in (0, 1)
@@ -131,7 +134,7 @@ class EnsembleKalmanFilter:
             else:
                 self.correct()
                 error = new_error
-            k += 1
+                k += 1
         end = time.time()
         time_elapsed = time.strftime('%H:%M:%S', time.gmtime(end - start))
         utils.pdump(time_elapsed, self.log_dir + "run_time.pickle")
@@ -170,7 +173,7 @@ class EnsembleKalmanFilter:
 
         logger.setLevel(logging.INFO)
         format_string = "%(asctime)s [%(levelname)s]: %(message)s"
-        log_format = logging.Formatter(format_string)
+        log_format = logging.Formatter(format_string, "%Y-%m-%d %H:%M:%S")
 
         # Creating and adding the console handler
         console_handler = logging.StreamHandler(sys.stdout)
