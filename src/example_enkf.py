@@ -60,7 +60,7 @@ def run_enkf_on_target(data_dir,
     utils.plot_consensus(log_dir + "consensus.pickle", log_dir + "consensus.pdf")
 
     ke.logger.info("Plotting landmarks...")
-    target_pickles = glob.glob(log_dir + '/PREDICTED_TARGET_iter=*.pickle')
+    target_pickles = glob.glob(log_dir + '/Q_mean_iter=*.pickle')
     for target_pickle in target_pickles:
         k = int(re.search(r'\d+', os.path.basename(target_pickle)).group())
         file_name, _ = os.path.splitext(target_pickle)
