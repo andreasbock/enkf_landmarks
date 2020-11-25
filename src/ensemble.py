@@ -1,8 +1,8 @@
 import torch
 import operator
 
-import enkf_landmarks.utils as utils
-from enkf_landmarks.lddmm import lddmm_forward, gauss_kernel
+import src.utils as utils
+from src.lddmm import lddmm_forward, gauss_kernel
 
 
 torch_dtype = torch.float32

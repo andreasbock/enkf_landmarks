@@ -6,8 +6,8 @@ import torch
 import logging
 import scipy.linalg as la
 
-import enkf_landmarks.utils as utils
-from enkf_landmarks.ensemble import MomentumEnsemble, Ensemble
+import src.utils as utils
+from src.ensemble import MomentumEnsemble, Ensemble
 
 torch_dtype = torch.float32
 

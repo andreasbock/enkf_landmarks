@@ -1,8 +1,8 @@
 import time
 import torch
 
-import enkf_landmarks.utils as utils
-from enkf_landmarks.lddmm import shoot
+import src.utils as utils
+from src.lddmm import shoot
 
 torch_dtype = torch.float32
 

@@ -1,7 +1,7 @@
 import torch
 
-import enkf_landmarks.ensemble as ensemble
-import enkf_landmarks.utils as utils
+import src.ensemble as ensemble
+import src.utils as utils
 
 torch_dtype = torch.float32
 

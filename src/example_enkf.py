@@ -4,7 +4,7 @@ import glob
 import numpy as np
 from pathlib import Path
 
-from enkf_landmarks.enkf import *
+from src.enkf import *
 
 
 def run_enkf_on_target(data_dir,
