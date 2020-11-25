@@ -41,7 +41,7 @@ class EnsembleKalmanFilter:
 
         # internals for logging
         self.logger = self.setup_logger()
-        self._errors = []
+        self._misfits = []
         self._consensus = []
         self.dump_parameters()
 
@@ -119,7 +119,7 @@ class EnsembleKalmanFilter:
             self.predict()
             self.dump_means(k)
             new_error = self.error_norm(self.target - self.Q.mean())
-            self._errors.append(new_error)
+            self._misfits.append(new_error)
             self._consensus.append(self.P.consensus())
 
             self.logger.info("Iteration {} | Error norm: {}".format(k, new_error))
@@ -146,7 +146,7 @@ class EnsembleKalmanFilter:
         return self.P
 
     def dump_error(self):
-        utils.pdump(self._errors, self.log_dir + "errors.pickle")
+        utils.pdump(self._misfits, self.log_dir + "misfits.pickle")
 
     def dump_consensus(self):
         utils.pdump(self._consensus, self.log_dir + "consensus.pickle")
