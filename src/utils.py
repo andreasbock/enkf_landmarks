@@ -1,3 +1,4 @@
+import glob
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -143,18 +144,17 @@ def plot_landmarks(file_name,
     plt.close()
 
 
-def plot_errors(errors_path, file_name):
-    po = open(errors_path, "rb")
-    errors = pickle.load(po)
+def plot_misfits(misfits_path, file_name):
+    po = open(misfits_path)
+    misfits = pickle.load(po)
     po.close()
 
-    plt.semilogy(range(len(errors)), errors)
-
+    # plot log-data misfit
+    plt.loglog(range(len(misfits)), misfits)
     plt.xlabel(r'Iteration $k$')
     plt.ylabel(r'$E^k$')
     plt.grid(linestyle='dotted')
     plt.savefig(file_name, bbox_inches='tight')
-    plt.close()
 
 
 def plot_consensus(consensus_path, file_name):

@@ -1,4 +1,3 @@
-import os
 import re
 import glob
 import numpy as np
@@ -54,7 +53,7 @@ def run_enkf_on_target(data_dir,
     target = utils.pload(log_dir + "target.pickle")
 
     ke.logger.info("Plotting errors...")
-    utils.plot_errors(log_dir + "errors.pickle", log_dir + "errors.pdf")
+    utils.plot_misfits(log_dir + "misfits.pickle", log_dir + "misfits.pdf")
 
     ke.logger.info("Plotting consensus...")
     utils.plot_consensus(log_dir + "consensus.pickle", log_dir + "consensus.pdf")
