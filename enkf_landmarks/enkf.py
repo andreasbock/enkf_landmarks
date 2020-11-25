@@ -184,4 +184,5 @@ class EnsembleKalmanFilter:
         file_handler = logging.FileHandler(logger_name)
         file_handler.setFormatter(log_format)
         logger.addHandler(file_handler)
+
         return logger
