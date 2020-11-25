@@ -1,9 +1,6 @@
-import os
-import sys
 import time
 import math
 import torch
-import logging
 import scipy.linalg as la
 
 import src.utils as utils
@@ -32,18 +29,18 @@ class EnsembleKalmanFilter:
         self.eta = 1e-05                 # noise limit
         self.gamma = torch.eye(self.dim, dtype=torch_dtype)
         self.root_gamma = torch.tensor(la.sqrtm(self.gamma))
+
         self.P = MomentumEnsemble()  # stores momenta at t=0
-        self.Q = Ensemble()  # stores shapes at t=1
+        self.Q = Ensemble()          # stores shapes at t=1
 
         # termination criteria for the error
         self.atol = 1e-05
         self.max_iter = max_iter
 
         # internals for logging
-        self.logger = self.setup_logger()
+        self.logger = utils.basic_logger(self.log_dir + '/enkf.log')
         self._misfits = []
         self._consensus = []
-        self.dump_parameters()
 
     def predict(self):
         self.Q = self.P.forward(self.template)
@@ -164,26 +161,3 @@ class EnsembleKalmanFilter:
         self.logger.info("tau: {}".format(self.tau))
         self.logger.info("eta: {}".format(self.eta))
         self.logger.info("atol: {}  (error tolerance)".format(self.atol))
-
-    def setup_logger(self):
-        if not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir)
-
-        logger_name = self.log_dir + '/enkf.log'
-        logger = logging.getLogger(logger_name)
-
-        logger.setLevel(logging.INFO)
-        format_string = "%(asctime)s [%(levelname)s]: %(message)s"
-        log_format = logging.Formatter(format_string, "%Y-%m-%d %H:%M:%S")
-
-        # Creating and adding the console handler
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(log_format)
-        logger.addHandler(console_handler)
-
-        # Creating and adding the file handler
-        file_handler = logging.FileHandler(logger_name)
-        file_handler.setFormatter(log_format)
-        logger.addHandler(file_handler)
-
-        return logger

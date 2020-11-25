@@ -1,4 +1,4 @@
-import glob
+import logging
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import torch
 import pickle
 import os
+import sys
 from datetime import datetime
 
 plt.rc('text', usetex=True)
@@ -36,6 +37,30 @@ def pload(file_name):
     po.close()
     return obj
 
+
+def basic_logger(logger_path):
+    log_dir, _ = os.path.split(logger_path)
+
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
+    logger = logging.getLogger(logger_path)
+
+    logger.setLevel(logging.INFO)
+    format_string = "%(asctime)s [%(levelname)s]: %(message)s"
+    log_format = logging.Formatter(format_string, "%Y-%m-%d %H:%M:%S")
+
+    # Creating and adding the console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(log_format)
+    logger.addHandler(console_handler)
+
+    # Creating and adding the file handler
+    file_handler = logging.FileHandler(logger_path)
+    file_handler.setFormatter(log_format)
+    logger.addHandler(file_handler)
+
+    return logger
 
 ##########
 # Shapes #
