@@ -91,7 +91,7 @@ def shoot(q0, q1, nt, sigma=_default_landmark_size, p0=None, epochs=15):
     def closure():
         optimizer.zero_grad()
         _loss = loss(p0, q0)
-        print('loss', _loss.detach().cpu().numpy())
+        #print('loss', _loss.detach().cpu().numpy())
         _loss.backward()
         return _loss
 
