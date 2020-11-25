@@ -117,7 +117,7 @@ class EnsembleKalmanFilter:
         error = float("-inf")  # initial error
         while k < self.max_iter:
             self.predict()
-            self.dump_mean(k)
+            self.dump_means(k)
             new_error = self.error_norm(self.target - self.Q.mean())
             self._errors.append(new_error)
             self._consensus.append(self.P.consensus())
@@ -151,8 +151,9 @@ class EnsembleKalmanFilter:
     def dump_consensus(self):
         utils.pdump(self._consensus, self.log_dir + "consensus.pickle")
 
-    def dump_mean(self, k):
-        utils.pdump(self.Q.mean().detach().numpy(), self.log_dir + f"PREDICTED_TARGET_iter={k}.pickle")
+    def dump_means(self, k):
+        utils.pdump(self.Q.mean().detach().numpy(), self.log_dir + f"Q_mean_iter={k}.pickle")
+        utils.pdump(self.P.mean().detach().numpy(), self.log_dir + f"P_mean_iter={k}.pickle")
 
     def dump_parameters(self):
         self.logger.info("max_iter: {}".format(self.max_iter))
