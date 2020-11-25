@@ -78,6 +78,7 @@ def ensemble_normal(num_landmarks, ensemble_size, mean=0, std=1):
 
 
 def target_from_momentum_ensemble(pe, template, time_steps=10, landmark_size=1):
+    # TODO: make this parallel
     sigma = torch.tensor([landmark_size], dtype=torch_dtype)
     K = gauss_kernel(sigma=sigma)
     target = torch.zeros(pe.element_dimension())
