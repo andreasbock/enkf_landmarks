@@ -7,7 +7,7 @@ import src.utils as utils
 torch_dtype = torch.float32
 
 parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('--log_dir', default=f"TARGET_{utils.date_string()}/", help='Directory in which to dump data.')
+parser.add_argument('--log_dir', default=f"../TARGET_{utils.date_string()}/", help='Directory in which to dump data.')
 parser.add_argument('--num_landmarks', type=int, default=50, help='Number of landmarks.')
 parser.add_argument('--ensemble_size', type=int, default=10, help='Number of ensemble elements.')
 parser.add_argument('--mean', type=float, default=0., help='Momentum mean.')
