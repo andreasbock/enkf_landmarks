@@ -2,6 +2,7 @@ import time
 import math
 import torch
 import scipy.linalg as la
+from mpi4py import MPI
 
 import src.utils as utils
 from src.ensemble import MomentumEnsemble, Ensemble
@@ -127,6 +128,7 @@ class EnsembleKalmanFilter:
                 self.logger.info("No improvement in residual, terminating filter")
                 break
             elif new_error <= self.tau*self.eta:
+                self.logger.info(f"Error {new_error} below tolerance {self.tau*self.eta}, terminating filter.")
                 break
             else:
                 self.correct()
