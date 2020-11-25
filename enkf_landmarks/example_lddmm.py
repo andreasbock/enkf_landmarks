@@ -16,10 +16,12 @@ print("Shooting...")
 start = time.time()
 qs = shoot(template, target, time_steps)
 end = time.time()
+file_name = 'example_lddmm'
 
 print(f"Done! Time elapsed: {end - start} seconds.")
+print(f"Dumping output to {file_name}.pdf")
 
-utils.plot_landmarks('example_lddmm',
+utils.plot_landmarks(file_name=file_name,
                      qs=qs,
                      template=template,
                      target=target,
