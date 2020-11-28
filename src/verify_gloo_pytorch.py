@@ -19,7 +19,6 @@ target = torch.tensor(utils.circle(num_landmarks, shift=2., scale=2.), dtype=tor
 def run(rank, size):
     print(f"Rank: {rank} of {size}\n")
     qs = shoot(template, target, time_steps)
-    utils.plot_landmarks(file_name=f'./Shooting={rank}', qs=qs, template=template, target=target)
     return qs
 
 
