@@ -1,8 +1,8 @@
 import time
 import torch
 
-import src.utils as utils
-from src.lddmm import shoot
+import utils
+from lddmm import shoot
 
 torch_dtype = torch.float32
 

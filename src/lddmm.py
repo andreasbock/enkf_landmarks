@@ -1,7 +1,7 @@
+import torch
 import numpy as np
 from torch.autograd import grad
-from pykeops.torch.kernel_product.formula import *
-import pykeops.torch as pk
+from pykeops.torch import LazyTensor as lt
 
 torch_dtype = torch.float32
 
@@ -11,13 +11,11 @@ torch_dtype = torch.float32
 # -------------------------------
 
 def gauss_kernel(sigma):
-    def k(x, y, b):
-        params = {
-            'id': pk.Kernel('gaussian(x,y)'),
-            'gamma': 1 / (sigma * sigma),
-            'backend': 'auto'
-        }
-        return pk.kernel_product(params, x, y, b)
+    def k(x, y, p):
+        x_lazy, y_lazy = lt(x[:, None, :]), lt(y[None, :, :])
+
+        return lt.exp(-lt.sum((x_lazy - y_lazy) ** 2, dim=2) / (2 * sigma ** 2)) @ p
+        # return lt.exp(-lt.sum((Vi(x) - Vj(y)) ** 2, dim=2) / (2 * sigma ** 2)) @ p  # WORKS too
 
     return k
 
