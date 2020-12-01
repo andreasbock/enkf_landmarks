@@ -200,7 +200,7 @@ class EnsembleKalmanFilter:
 
     def logger_critical(self, msg):
         if self.is_master():
-            self.logger.info(msg)
+            self.logger.critical(msg)
 
     def dump_parameters(self):
         if self.is_master():
