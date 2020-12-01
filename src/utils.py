@@ -62,6 +62,7 @@ def basic_logger(logger_path):
 
     return logger
 
+
 ##########
 # Shapes #
 ##########
@@ -170,7 +171,7 @@ def plot_landmarks(file_name,
 
 
 def plot_misfits(misfits_path, file_name):
-    po = open(misfits_path)
+    po = open(misfits_path, 'rb')
     misfits = pickle.load(po)
     po.close()
 
