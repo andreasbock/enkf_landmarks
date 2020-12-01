@@ -1,5 +1,7 @@
-import torch
 import operator
+
+import torch
+import torch.distributed as dist
 
 import src.utils as utils
 from src.lddmm import lddmm_forward, gauss_kernel
@@ -9,23 +11,14 @@ torch_dtype = torch.float32
 
 
 class Ensemble:
-    def __init__(self):
-        self.ensemble = []
-
-    def size(self):
-        return len(self.ensemble)
+    def __init__(self, ensemble, rank):
+        self.ensemble = ensemble
+        self.rank = rank
 
     def mean(self):
-        if len(self.ensemble) < 1:
-            raise ValueError("Cannot take mean of empty ensemble")
-        else:
-            return torch.mean(torch.stack(self.ensemble), dim=0)
-
-    def append(self, el):
-        self.ensemble.append(el)
-
-    def clear(self):
-        self.ensemble = []
+        _mean = self.ensemble.clone()
+        dist.all_reduce(_mean)
+        _mean /= self.size()
 
     def consensus(self):
         normalised_ensemble = [e - self.mean() for e in self.ensemble]
@@ -36,19 +29,14 @@ class Ensemble:
         utils.pdump(self.ensemble, file_name)
 
     @staticmethod
-    def load(file_name, time_steps=10):
+    def load(file_name, rank, time_steps=10):
         e = MomentumEnsemble(time_steps=time_steps)
-        e.ensemble = utils.pload(file_name)
+        e.ensemble = utils.pload(file_name)[rank]
         return e
 
     def perturb(self, alpha, op=operator.mul):
         for i in range(self.size()):
-            self.ensemble[i] = op(self.ensemble[i], alpha[i])
-
-    def element_dimension(self):
-        if len(self.ensemble) == 0:
-            raise Exception("Cannot get dimension of Ensemble with no elements!")
-        return self.ensemble[0].size()
+            self.ensemble[i] = op(self.ensemble, alpha)
 
 
 class MomentumEnsemble(Ensemble):
@@ -62,11 +50,8 @@ class MomentumEnsemble(Ensemble):
         self.k = gauss_kernel(sigma=sigma)
 
     def forward(self, template):
-        q = Ensemble()
-        for p in self.ensemble:
-            q_p = lddmm_forward(p, template, self.k, self.time_steps)[-1][1]
-            q.append(q_p)
-        return q
+        q = lddmm_forward(self.ensemble, template, self.k, self.time_steps)[-1][1]
+        return Ensemble(q)
 
 
 def ensemble_normal(num_landmarks, ensemble_size, mean=0, std=1):
