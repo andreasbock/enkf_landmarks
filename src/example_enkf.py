@@ -4,16 +4,17 @@ import glob
 import numpy as np
 from pathlib import Path
 
-from src.enkf import *
+import src.utils as utils
+from src.enkf import EnsembleKalmanFilter
 
 
 def run_enkf_on_target(data_dir,
-                       log_dir='../',
+                       log_dir='./',
                        regularisation=1.):
-
     # where to dump results
     target_name = os.path.basename(data_dir).lstrip('TARGET_')
     log_dir += f"RESULT_{target_name}_regularisation={regularisation}_{utils.date_string()}/"
+    utils.create_dir_from_path_if_not_exists(log_dir)
 
     # 1) load template and target from file
     template = utils.pload(data_dir + "/template.pickle")
@@ -23,10 +24,10 @@ def run_enkf_on_target(data_dir,
     ke = EnsembleKalmanFilter(template, target, log_dir=log_dir)
 
     # 3) load initial momentum
-    pe = MomentumEnsemble.load(data_dir + "/pe_initial.pickle")
+    p_ensemble_list = utils.pload(data_dir + "/pe_initial.pickle")
 
     # dump stuff into log dir
-    pe.save(log_dir + "pe_initial.pickle")
+    utils.pdump(p_ensemble_list, log_dir + "pe_initial.pickle")
     utils.pdump(template, log_dir + "template.pickle")
     utils.pdump(target, log_dir + "target.pickle")
 
@@ -34,10 +35,11 @@ def run_enkf_on_target(data_dir,
     ke.logger.info(f"Loaded data from {data_dir}.")
     ke.logger.info(f"Dumping files to {log_dir}.")
     ke.logger.info("Running EnKF...")
-    pe_result = ke.run(pe, target, regularisation=regularisation)
+
+    pe_result = ke.run(p_ensemble_list, regularisation=regularisation)
 
     # 5) dump the results
-    pe_result.save(log_dir + "pe_result.pickle")
+    utils.pdump(pe_result, log_dir + "pe_result.pickle")
 
     # if we have used a perturbed version of the true initial ensemble
     # as our initial ensemble then dump the perturbation vector
@@ -49,7 +51,7 @@ def run_enkf_on_target(data_dir,
                        f"{distance_from_unit}.")
 
     ke.logger.info(f"Dumping results into {log_dir}...")
-    log_dir += '/'
+
     template = utils.pload(log_dir + "template.pickle")
     target = utils.pload(log_dir + "target.pickle")
 
@@ -78,9 +80,7 @@ def run_enkf_on_target(data_dir,
 
 if __name__ == "__main__":
     # run the EnKF on all the manufactured solutions in the `data` directory
-    target_paths = sorted(Path('../data/').glob('TARGET*'))
+    target_paths = sorted(Path('data/').glob('TARGET*'))
 
     for target_path in target_paths:
         run_enkf_on_target(str(target_path), regularisation=0.1)
-        run_enkf_on_target(str(target_path), regularisation=1)
-        run_enkf_on_target(str(target_path), regularisation=5)
