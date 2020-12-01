@@ -58,16 +58,25 @@ class EnsembleKalmanFilter:
         self._misfits = []
         self._consensus = []
 
+    def q_mean(self):
+        return self._mean(self.Q)
+
+    def p_mean(self):
+        return self._mean(self.P)
+
+    def _mean(self, tensor):
+        _tensor = tensor.clone()
+        dist.all_reduce(_tensor)
+        return _tensor / self.ranks
+
     def predict(self):
         self.Q = self._forward()
-        q_mean = self.Q.clone()
-        dist.all_reduce(q_mean)
-        return q_mean / self.ranks
+        return self.q_mean()
 
     def correct(self, q_mean, p_mean):
         # do these on master only & share
-        cq = self._compute_cov_qq(q_mean)
-        cp = self._compute_cov_pq(q_mean, p_mean)
+        cq = self._cov_qq(q_mean)
+        cp = self._cov_pq(q_mean, p_mean)
         with torch.no_grad():
             self.P += self.gain(cp, cq)
 
@@ -78,32 +87,33 @@ class EnsembleKalmanFilter:
             p_update[k] = torch.matmul(cp[k, :, :], q_update)
         return p_update
 
-    def _compute_cov_pq(self, q_mean, p_mean):
+    def _cov_pq(self, q_mean, p_mean):
         cp = torch.einsum('ij,ik->ijk', self.P - p_mean, self.Q - q_mean)
         dist.all_reduce(cp)
         return cp / (self.ranks - 1)
 
-    def _compute_cov_qq(self, q_mean):
+    def _cov_qq(self, q_mean):
         """" Returns a regularised version of CQ. """
-        cq_alpha_gamma_inv = torch.zeros(self.num_landmarks, self.dim, self.dim)
-        cq = self._compute_cov_qq_operator(q_mean)
+        cqq_alpha_gamma_inv = torch.zeros(self.num_landmarks, self.dim, self.dim)
+        cqq = self._cov_qq_operator(q_mean)
 
         lhs = self.rho * self.error_norm(self.target - q_mean)
-        k = 0
         alpha = self.alpha_0
+
+        k = 0
         while k < self.max_iter_regularisation:
             # compute the operator of which we need the inverse
-            cq_alpha_gamma_inv = torch.inverse(cq + alpha * self.gamma)
+            cqq_alpha_gamma_inv = torch.inverse(cqq + alpha * self.gamma)
             # compute the error norm (rhs)
-            q_cq_inv = torch.einsum('ijk,ij->ik', cq_alpha_gamma_inv, self.target - q_mean)
-            if alpha * self.error_norm(q_cq_inv) >= lhs:
-                return cq_alpha_gamma_inv
+            q_cqq_inv = torch.einsum('ijk,ij->ik', cqq_alpha_gamma_inv, self.target - q_mean)
+            if alpha * self.error_norm(q_cqq_inv) >= lhs:
+                return cqq_alpha_gamma_inv
             else:
                 alpha *= 2
                 k += 1
-        return cq_alpha_gamma_inv
+        return cqq_alpha_gamma_inv
 
-    def _compute_cov_qq_operator(self, q_mean):
+    def _cov_qq_operator(self, q_mean):
         cq = torch.einsum('ij,ik->ijk', self.Q - q_mean, self.Q - q_mean)
         dist.all_reduce(cq)
         return cq / (self.ranks - 1)
@@ -113,8 +123,9 @@ class EnsembleKalmanFilter:
         prod_gamma_x = torch.einsum('ij,kj->ki', self.root_gamma, x)
         return torch.sqrt(torch.einsum('ij,ij->', prod_gamma_x, prod_gamma_x))
 
-    def run(self, p_ensemble, regularisation=1):
+    def run(self, p_ensemble, regularisation=1, max_iter=50):
         self.ranks = len(p_ensemble)
+        self.max_iter = max_iter
 
         processes = []
         p_ensemble_result = [torch.zeros(size=p_ensemble[0].size()) for _ in p_ensemble]
@@ -128,13 +139,8 @@ class EnsembleKalmanFilter:
 
         return p_ensemble_result
 
-    def _run(self, p_ensemble, rank, p_ensemble_result, regularisation, backend='gloo', max_iter=50):
-        os.environ['MASTER_ADDR'] = '127.0.0.1'
-        os.environ['MASTER_PORT'] = '29500'
-        os.environ['GLOO_SOCKET_IFNAME'] = 'en0'
-        dist.init_process_group(backend=backend, rank=rank, world_size=self.ranks)
-
-        self.max_iter = max_iter
+    def _run(self, p_ensemble, rank, p_ensemble_result, regularisation):
+        _initialise_distributed_pytorch(rank, self.ranks)
         self.rank = rank
         self.P = p_ensemble[rank]
         self.alpha_0 = regularisation
@@ -148,6 +154,7 @@ class EnsembleKalmanFilter:
             self._misfits.append(new_error)
 
             self.logger_info("Iteration {} | Error norm: {}".format(k, new_error))
+
             if math.isnan(new_error):
                 self.logger_critical("Error is NaN (regularisation issue?), terminating filter.")
                 break
@@ -158,9 +165,7 @@ class EnsembleKalmanFilter:
                 self.logger_info(f"Error {new_error} below tolerance {self.tau*self.eta}, terminating filter.")
                 break
             else:
-                p_mean = self.P.clone()
-                dist.all_reduce(p_mean)
-                p_mean /= self.ranks
+                p_mean = self.p_mean()
                 self.dump_means(k, q_mean, p_mean)
                 self.correct(q_mean, p_mean)
                 error = new_error
@@ -217,3 +222,10 @@ class EnsembleKalmanFilter:
 
     def is_master(self):
         return self.rank == 0 or self.rank is None
+
+
+def _initialise_distributed_pytorch(rank, ranks, backend='gloo'):
+    os.environ['MASTER_ADDR'] = '127.0.0.1'
+    os.environ['MASTER_PORT'] = '29500'
+    os.environ['GLOO_SOCKET_IFNAME'] = 'en0'
+    dist.init_process_group(backend=backend, rank=rank, world_size=ranks)
