@@ -6,14 +6,6 @@ from src.lddmm import lddmm_forward, gauss_kernel
 
 torch_dtype = torch.float32
 
-parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('--log_dir', default=f"../TARGET_{utils.date_string()}/", help='Directory in which to dump data.')
-parser.add_argument('--num_landmarks', type=int, default=50, help='Number of landmarks.')
-parser.add_argument('--ensemble_size', type=int, default=10, help='Number of ensemble elements.')
-parser.add_argument('--mean', type=float, default=0., help='Momentum mean.')
-parser.add_argument('--std', type=float, default=.5, help='Momentum standard deviation.')
-args = parser.parse_args()
-
 
 def ensemble_normal(num_landmarks, ensemble_size, mean=0, std=1):
     pe = []
@@ -52,6 +44,15 @@ def manufacture_from_normal_distribution(log_dir, ensemble_size, num_landmarks, 
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('--log_dir', default=f"../TARGET_{utils.date_string()}/",
+                        help='Directory in which to dump data.')
+    parser.add_argument('--num_landmarks', type=int, default=50, help='Number of landmarks.')
+    parser.add_argument('--ensemble_size', type=int, default=10, help='Number of ensemble elements.')
+    parser.add_argument('--mean', type=float, default=0., help='Momentum mean.')
+    parser.add_argument('--std', type=float, default=.5, help='Momentum standard deviation.')
+    args = parser.parse_args()
+
     manufacture_from_normal_distribution(log_dir=args.log_dir,
                                          ensemble_size=args.ensemble_size,
                                          num_landmarks=args.num_landmarks,
