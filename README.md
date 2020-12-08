@@ -16,8 +16,13 @@ enkf_landmarks>  python src/verify_pytorch.py
 ```
 which should produce:
 ```
-<OUTPUT>
-```
+Remember to run 'export GLOO_SOCKET_IFNAME=<your primary interface>!
+Rank: 0 of 4
+Rank: 1 of 4
+Rank: 2 of 4
+Rank: 3 of 4
+
+That took 2.3776447772979736 seconds```
 
 # Overview of the repository
 Some description
