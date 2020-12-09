@@ -15,7 +15,13 @@ def make_normal_momentum(num_landmarks, mean, std):
     return _p.clone().detach().requires_grad_(True).type(dtype=torch_dtype)
 
 
-def manufacture_from_normal_distribution(log_dir, ensemble_size, num_landmarks, mean, std, time_steps, landmark_size):
+def manufacture_from_normal_distribution(ensemble_size,
+                                         num_landmarks,
+                                         mean,
+                                         std,
+                                         time_steps,
+                                         landmark_size,
+                                         log_dir=None):
 
     template = torch.tensor(utils.circle(num_landmarks), dtype=torch_dtype, requires_grad=True)
     p_ensemble_result = [torch.zeros(size=(num_landmarks, 2)) for _ in range(ensemble_size)]
@@ -31,7 +37,7 @@ def manufacture_from_normal_distribution(log_dir, ensemble_size, num_landmarks, 
         dist.all_reduce(target)
         target /= ranks
 
-        if rank == 0:
+        if log_dir and rank == 0:
             utils.pdump(p_ensemble_result, log_dir + "p_ensemble_truth.pickle")
             utils.pdump(template, log_dir + "template.pickle")
             utils.pdump(target, log_dir + "target.pickle")
@@ -46,6 +52,8 @@ def manufacture_from_normal_distribution(log_dir, ensemble_size, num_landmarks, 
 
     for p in processes:
         p.join()
+
+    return p_ensemble_result
 
 
 if __name__ == "__main__":
@@ -64,10 +72,10 @@ if __name__ == "__main__":
         logger.info(f"{key}: {value}")
         utils.pdump(value, args.log_dir + f"/{key}.pickle")
 
-    manufacture_from_normal_distribution(log_dir=args.log_dir,
-                                         ensemble_size=args.ensemble_size,
+    manufacture_from_normal_distribution(ensemble_size=args.ensemble_size,
                                          num_landmarks=args.num_landmarks,
                                          mean=args.mean,
                                          std=args.std,
                                          time_steps=args.timesteps,
-                                         landmark_size=args.landmark_size)
+                                         landmark_size=args.landmark_size,
+                                         log_dir=args.log_dir)
