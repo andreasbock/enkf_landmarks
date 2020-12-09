@@ -6,14 +6,15 @@ from pathlib import Path
 
 import src.utils as utils
 from src.enkf import EnsembleKalmanFilter
-from src.manufacture_shape_data import manufacture_from_normal_distribution
+from src.manufacture_shape_data import make_normal_momentum
 
 
 def run_enkf_on_target(ensemble_size,
-                       timesteps,
+                       time_steps,
+                       max_iter,
+                       regularisation,
                        source,
-                       destination,
-                       regularisation=0.1):
+                       destination):
     # where to dump results
     utils.create_dir_from_path_if_not_exists(destination)
 
@@ -25,13 +26,11 @@ def run_enkf_on_target(ensemble_size,
     ke = EnsembleKalmanFilter(template, target, log_dir=destination)
 
     # 3) create initial momentum
-    p_ensemble_list = manufacture_from_normal_distribution(ensemble_size=ensemble_size,
-                                                           num_landmarks=len(target),
-                                                           mean=utils.pload(source + '/mean.pickle'),
-                                                           std=utils.pload(source + '/std.pickle'),
-                                                           time_steps=timesteps,
-                                                           landmark_size=utils.pload(source + '/landmark_size.pickle'),
-                                                           log_dir=None)
+    p_ensemble_list = [make_normal_momentum(num_landmarks=len(target),
+                                            mean=utils.pload(source + '/mean.pickle'),
+                                            std=utils.pload(source + '/std.pickle'))
+                       for _ in range(ensemble_size)]
+
     # dump stuff into log dir
     utils.pdump(p_ensemble_list, destination + '/pe_initial.pickle')
     utils.pdump(template, destination + '/template.pickle')
@@ -42,7 +41,10 @@ def run_enkf_on_target(ensemble_size,
     ke.logger.info(f'Dumping files to {destination}.')
     ke.logger.info('Running EnKF...')
 
-    pe_result = ke.run(p_ensemble_list, regularisation=regularisation)
+    pe_result = ke.run(p_ensemble_list,
+                       regularisation=regularisation,
+                       time_steps=time_steps,
+                       max_iter=max_iter)
 
     # 5) dump the results
     utils.pdump(pe_result, destination + '/pe_result.pickle')
@@ -78,9 +80,11 @@ def run_enkf_on_target(ensemble_size,
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Runs the EnkF algorithm on the data directory.')
+    parser.add_argument('--time_steps', type=int, default=10, help='Time steps for the forward map.')
+    parser.add_argument('--max_iter', type=int, default=50, help='Number of EnKF iterations.')
+    parser.add_argument('--regularisation', type=float, default=0.1, help='Regularisation parameter.')
     parser.add_argument('--realisations', type=int, default=20)
     parser.add_argument('--log_dir', type=str, default='results2/')
-    parser.add_argument('--timesteps', type=int, default=10, help='Time steps for the forward map.')
     args = parser.parse_args()
 
     # mapping of landmarks to ensemble sizes we wish to simulate for
@@ -96,4 +100,9 @@ if __name__ == '__main__':
                 for j in range(args.realisations):
                     destination = Path(source_directory.replace('data', args.log_dir))
                     destination /= f'ENSEMBLE_SIZE={ensemble_size}/REALISATION_{utils.date_string()}/'
-                    run_enkf_on_target(ensemble_size, args.timesteps, source_directory, str(destination))
+                    run_enkf_on_target(ensemble_size,
+                                       args.time_steps,
+                                       args.max_iter,
+                                       args.regularisation,
+                                       source_directory,
+                                       str(destination))
