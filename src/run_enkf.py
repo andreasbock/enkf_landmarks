@@ -26,9 +26,9 @@ def run_enkf_on_target(ensemble_size,
     ke = EnsembleKalmanFilter(template, target, log_dir=destination)
 
     # 3) create initial momentum
-    p_ensemble_list = [make_normal_momentum(num_landmarks=len(target),
-                                            mean=utils.pload(source + '/mean.pickle'),
-                                            std=utils.pload(source + '/std.pickle'))
+    mean = utils.pload(source + '/mean.pickle')
+    std = utils.pload(source + '/std.pickle')
+    p_ensemble_list = [make_normal_momentum(num_landmarks=len(target), mean=mean, std=std)
                        for _ in range(ensemble_size)]
 
     # dump stuff into log dir
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_iter', type=int, default=50, help='Number of EnKF iterations.')
     parser.add_argument('--regularisation', type=float, default=0.1, help='Regularisation parameter.')
     parser.add_argument('--realisations', type=int, default=20)
-    parser.add_argument('--log_dir', type=str, default='results2/')
+    parser.add_argument('--log_dir', type=str, default='results/')
     args = parser.parse_args()
 
     # mapping of landmarks to ensemble sizes we wish to simulate for
