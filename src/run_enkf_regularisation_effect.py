@@ -6,6 +6,7 @@ from pathlib import Path
 
 import src.utils as utils
 from src.enkf import EnsembleKalmanFilter
+from src.manufacture_shape_data import make_normal_momentum
 
 
 def run_enkf_on_target(source_directory,
@@ -28,12 +29,16 @@ def run_enkf_on_target(source_directory,
     ke = EnsembleKalmanFilter(template, target, log_dir=destination_string)
 
     # 3) load initial momentum
-    p_ensemble_list = utils.pload(source_directory_string + "/pe_initial.pickle")
+    ensemble_size = utils.pload(source_directory_string + '/ensemble_size.pickle')
+    p_ensemble_list = [make_normal_momentum(num_landmarks=len(target),
+                                            mean=utils.pload(source_directory_string + '/mean.pickle'),
+                                            std=utils.pload(source_directory_string + '/std.pickle'))
+                       for _ in range(ensemble_size)]
 
     # dump stuff into log dir
-    utils.pdump(p_ensemble_list, destination_string + "pe_initial.pickle")
-    utils.pdump(template, destination_string + "template.pickle")
-    utils.pdump(target, destination_string + "target.pickle")
+    utils.pdump(p_ensemble_list, destination_string + "/p_ensemble_truth.pickle")
+    utils.pdump(template, destination_string + "/template.pickle")
+    utils.pdump(target, destination_string + "/target.pickle")
 
     # 4) run Kalman filter
     ke.logger.info(f"Loaded data from {source_directory_string}.")
@@ -43,7 +48,7 @@ def run_enkf_on_target(source_directory,
     pe_result = ke.run(p_ensemble_list, regularisation=regularisation)
 
     # 5) dump the results
-    utils.pdump(pe_result, destination_string + "pe_result.pickle")
+    utils.pdump(pe_result, destination_string + "/pe_result.pickle")
 
     # if we have used a perturbed version of the true initial ensemble
     # as our initial ensemble then dump the perturbation vector
@@ -56,14 +61,14 @@ def run_enkf_on_target(source_directory,
 
     ke.logger.info(f"Dumping results into {destination_string}...")
 
-    template = utils.pload(destination_string + "template.pickle")
-    target = utils.pload(destination_string + "target.pickle")
+    template = utils.pload(destination_string + "/template.pickle")
+    target = utils.pload(destination_string + "/target.pickle")
 
     ke.logger.info("Plotting errors...")
-    utils.plot_misfits(destination_string + "misfits.pickle", destination_string + "misfits.pdf")
+    utils.plot_misfits(destination_string + "/misfits.pickle", destination_string + "/misfits.pdf")
 
     ke.logger.info("Plotting consensus...")
-    utils.plot_consensus(destination_string + "consensus.pickle", destination_string + "consensus.pdf")
+    utils.plot_consensus(destination_string + "/consensus.pickle", destination_string + "/consensus.pdf")
 
     ke.logger.info("Plotting landmarks...")
     target_pickles = glob.glob(destination_string + '/Q_mean_iter=*.pickle')
@@ -77,7 +82,7 @@ def run_enkf_on_target(source_directory,
                              landmark_label="$F[P^{" + str(k) + "}]$")
 
     ke.logger.info("Plotting template and target...")
-    utils.plot_landmarks(file_name=destination_string + "template_and_target",
+    utils.plot_landmarks(file_name=destination_string + "/template_and_target",
                          template=template,
                          target=target)
 
@@ -85,7 +90,7 @@ def run_enkf_on_target(source_directory,
 if __name__ == "__main__":
 
     # run the EnKF on all the manufactured solutions in the `data` directory
-    target_paths = sorted(Path('data/').glob('TARGET*'))
+    target_paths = sorted(Path('data/LANDMARKS=50').glob('TARGET*'))
     destination = Path('./REGULARISATION_EXPERIMENTS/')
 
     # run regularisation
