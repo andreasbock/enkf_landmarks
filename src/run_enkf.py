@@ -96,7 +96,7 @@ if __name__ == '__main__':
         for target in targets:
             source_directory = str(target)
             for ensemble_size in ensemble_sizes:
-                for j in range(args.realisations):
+                for _ in range(args.realisations):
                     destination = Path(source_directory.replace('data', args.log_dir))
                     destination /= f'ENSEMBLE_SIZE={ensemble_size}/REALISATION_{utils.date_string()}/'
                     run_enkf_on_target(ensemble_size,
