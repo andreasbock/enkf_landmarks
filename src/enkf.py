@@ -40,7 +40,7 @@ class EnsembleKalmanFilter:
         # ODE parameters
         self.sigma = torch.tensor([1], dtype=torch_dtype)
         self.kernel = gauss_kernel(sigma=self.sigma)
-        self.time_steps = 10
+        self.time_steps = None
 
         self.P = None  # stores momenta at t=0
         self.Q = None  # stores shapes at t=1
@@ -123,9 +123,10 @@ class EnsembleKalmanFilter:
         prod_gamma_x = torch.einsum('ij,kj->ki', self.root_gamma, x)
         return torch.sqrt(torch.einsum('ij,ij->', prod_gamma_x, prod_gamma_x))
 
-    def run(self, p_ensemble, regularisation=1, max_iter=50):
+    def run(self, p_ensemble, regularisation=1, time_steps=10, max_iter=50):
         self.ranks = len(p_ensemble)
         self.max_iter = max_iter
+        self.time_steps = time_steps
 
         processes = []
         p_ensemble_result = [torch.zeros(size=p_ensemble[0].size()) for _ in p_ensemble]
@@ -142,7 +143,7 @@ class EnsembleKalmanFilter:
     def _run(self, p_ensemble, rank, p_ensemble_result, regularisation):
         _initialise_distributed_pytorch(rank, self.ranks)
         self.rank = rank
-        self.P = p_ensemble[rank]
+        self.P = p_ensemble[rank].clone().detach().requires_grad_(True)
         self.alpha_0 = regularisation
 
         start = time.time() if self.is_master() else None
@@ -174,7 +175,7 @@ class EnsembleKalmanFilter:
         end = time.time() if self.is_master() else None
         if self.is_master():
             time_elapsed = time.strftime('%H:%M:%S', time.gmtime(end - start))
-            utils.pdump(time_elapsed, self.log_dir + "run_time.pickle")
+            utils.pdump(time_elapsed, self.log_dir + "/run_time.pickle")
             self.logger.info(f"Filter run time: {time_elapsed}. Logged to {self.log_dir + 'run_time.pickle'}.")
 
         self.dump_error()
@@ -188,16 +189,16 @@ class EnsembleKalmanFilter:
 
     def dump_error(self):
         if self.is_master():
-            utils.pdump(self._misfits, self.log_dir + "misfits.pickle")
+            utils.pdump(self._misfits, self.log_dir + "/misfits.pickle")
 
     def dump_consensus(self):
         if self.is_master():
-            utils.pdump(self._consensus, self.log_dir + "consensus.pickle")
+            utils.pdump(self._consensus, self.log_dir + "/consensus.pickle")
 
     def dump_means(self, k, q_mean, p_mean):
         if self.is_master():
-            utils.pdump(q_mean.detach().numpy(), self.log_dir + f"Q_mean_iter={k}.pickle")
-            utils.pdump(p_mean.detach().numpy(), self.log_dir + f"P_mean_iter={k}.pickle")
+            utils.pdump(q_mean.detach().numpy(), self.log_dir + f"/Q_mean_iter={k}.pickle")
+            utils.pdump(p_mean.detach().numpy(), self.log_dir + f"/P_mean_iter={k}.pickle")
 
     def logger_info(self, msg):
         if self.is_master():
