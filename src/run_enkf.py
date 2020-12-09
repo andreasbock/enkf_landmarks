@@ -95,7 +95,6 @@ if __name__ == '__main__':
         targets = Path(target_path).glob('TARGET*')
         for target in targets:
             source_directory = str(target)
-            destination_directory = Path(source_directory.replace('data', args.log_dir))
             for ensemble_size in ensemble_sizes:
                 for j in range(args.realisations):
                     destination = Path(source_directory.replace('data', args.log_dir))
