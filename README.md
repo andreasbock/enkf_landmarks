@@ -64,3 +64,4 @@ MIT
  - Make it work for curves or images.
  - Parallelise the EnkF.
  - Clean up numpy/torch mess
+ - Use pathlib everywhere
