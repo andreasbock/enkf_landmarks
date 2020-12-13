@@ -176,9 +176,11 @@ def plot_misfits(misfits_path, file_name):
     po.close()
 
     # plot log-data misfit
-    plt.loglog(range(len(misfits)), misfits)
+    plt.semilogy(range(len(misfits)), misfits)
     plt.xlabel(r'Iteration $k$')
     plt.ylabel(r'$E^k$')
+
+    plt.xticks(range(1, len(misfits)+1))
     plt.grid(linestyle='dotted')
     plt.savefig(file_name, bbox_inches='tight')
 
