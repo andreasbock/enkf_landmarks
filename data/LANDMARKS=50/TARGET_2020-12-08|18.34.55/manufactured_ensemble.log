@@ -1,0 +1,7 @@
+2020-12-08 18:34:55 [INFO]: log_dir: TARGET_2020-12-08|18.34.55/
+2020-12-08 18:34:55 [INFO]: num_landmarks: 50
+2020-12-08 18:34:55 [INFO]: ensemble_size: 1
+2020-12-08 18:34:55 [INFO]: mean: 0.0
+2020-12-08 18:34:55 [INFO]: std: 1.0
+2020-12-08 18:34:55 [INFO]: timesteps: 10
+2020-12-08 18:34:55 [INFO]: landmark_size: 1
