@@ -145,6 +145,7 @@ class EnsembleKalmanFilter:
         self.rank = rank
         self.P = p_ensemble[rank].clone().detach().requires_grad_(True)
         self.alpha_0 = regularisation
+        self.dump_parameters()
 
         start = time.time() if self.is_master() else None
         k = 0
