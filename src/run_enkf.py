@@ -88,7 +88,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # mapping of landmarks to ensemble sizes we wish to simulate for
-    ensemble_sizes = [10, 50, 150]
+    ensemble_sizes = [10, 50, 100]
 
     # run the EnKF on all the manufactured solutions in the `data` directory
     for target_path in Path('data/').glob('LANDMARKS=*'):
