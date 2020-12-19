@@ -82,7 +82,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Runs the EnkF algorithm on the data directory.')
     parser.add_argument('--time_steps', type=int, default=15, help='Time steps for the forward map.')
     parser.add_argument('--max_iter', type=int, default=50, help='Number of EnKF iterations.')
-    parser.add_argument('--regularisation', type=float, default=0.1, help='Regularisation parameter.')
+    parser.add_argument('--regularisation', type=float, default=1, help='Regularisation parameter.')
     parser.add_argument('--realisations', type=int, default=20)
     parser.add_argument('--log_dir', type=str, default='results/')
     args = parser.parse_args()
