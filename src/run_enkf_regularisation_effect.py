@@ -10,14 +10,15 @@ from src.manufacture_shape_data import make_normal_momentum
 
 
 def run_enkf_on_target(source_directory,
-                       destination=Path('./'),
-                       regularisation=1.):
-    destination_string = str(destination)
+                       destination,
+                       ensemble_size,
+                       regularisation):
     source_directory_string = str(source_directory)
 
     # where to dump results
     target_name = os.path.basename(source_directory_string).lstrip('TARGET_')
     destination /= f"RESULT_{target_name}_regularisation={regularisation}_{utils.date_string()}/"
+    destination_string = str(destination)
 
     utils.create_dir_from_path_if_not_exists(destination_string)
 
@@ -29,10 +30,9 @@ def run_enkf_on_target(source_directory,
     ke = EnsembleKalmanFilter(template, target, log_dir=destination_string)
 
     # 3) load initial momentum
-    ensemble_size = utils.pload(source_directory_string + '/ensemble_size.pickle')
-    p_ensemble_list = [make_normal_momentum(num_landmarks=len(target),
-                                            mean=utils.pload(source_directory_string + '/mean.pickle'),
-                                            std=utils.pload(source_directory_string + '/std.pickle'))
+    mean = utils.pload(source_directory_string + '/mean.pickle')
+    std = utils.pload(source_directory_string + '/std.pickle')
+    p_ensemble_list = [make_normal_momentum(num_landmarks=len(target), mean=mean, std=std)
                        for _ in range(ensemble_size)]
 
     # dump stuff into log dir
@@ -92,10 +92,12 @@ if __name__ == "__main__":
     # run the EnKF on all the manufactured solutions in the `data` directory
     target_paths = sorted(Path('data/LANDMARKS=50').glob('TARGET*'))
     destination = Path('./REGULARISATION_EXPERIMENTS/')
+    ensemble_size = 50
 
     # run regularisation
     for target_path in target_paths:
-        run_enkf_on_target(target_path, destination, regularisation=0.01)
-        run_enkf_on_target(target_path, destination, regularisation=0.1)
-        run_enkf_on_target(target_path, destination, regularisation=1)
-        run_enkf_on_target(target_path, destination, regularisation=10)
+        run_enkf_on_target(target_path, destination, ensemble_size, regularisation=0.01)
+        run_enkf_on_target(target_path, destination, ensemble_size, regularisation=0.1)
+        run_enkf_on_target(target_path, destination, ensemble_size, regularisation=1)
+        run_enkf_on_target(target_path, destination, ensemble_size, regularisation=10)
+        run_enkf_on_target(target_path, destination, ensemble_size, regularisation=100)
