@@ -4,17 +4,21 @@ import glob
 import argparse
 from pathlib import Path
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 import src.utils as utils
 from src.enkf import EnsembleKalmanFilter
 from src.manufacture_shape_data import make_normal_momentum
 
 
-def run_enkf_on_target(ensemble_size,
+def run_enkf_on_target(source,
+                       destination,
+                       ensemble_size,
                        time_steps,
                        max_iter,
-                       regularisation,
-                       source,
-                       destination):
+                       regularisation):
     # where to dump results
     utils.create_dir_from_path_if_not_exists(destination)
 
@@ -76,6 +80,23 @@ def run_enkf_on_target(ensemble_size,
                          template=template,
                          target=target)
 
+def plot_log_misfits(path):
+    plt.figure()
+    for realisation in path.glob('REALISATION*'):
+        misfits = utils.pload(str(realisation / 'misfits.pickle'))
+        plt.semilogy(range(1, len(misfits)+1), misfits)
+
+    plt.xlabel(r'Iteration $k$')
+    plt.ylabel(r'$\log E^k$')
+    plt.grid(linestyle='dotted')
+
+    path_string = str(path)
+    landmarks = re.search('LANDMARKS=([0-9]+)', path_string).group()
+    ensemble_size = re.search('ENSEMBLE_SIZE=([0-9]+)', path_string).group()
+    destination = str(path / f'../log_data_misfit_{landmarks}_{ensemble_size}.pdf')
+    plt.savefig(destination, bbox_inches='tight')
+    plt.close()
+
 
 if __name__ == '__main__':
 
@@ -99,9 +120,13 @@ if __name__ == '__main__':
                 for _ in range(args.realisations):
                     destination = Path(source_directory.replace('data', args.log_dir))
                     destination /= f'ENSEMBLE_SIZE={ensemble_size}/REALISATION_{utils.date_string()}/'
-                    run_enkf_on_target(ensemble_size,
+                    run_enkf_on_target(source_directory,
+                                       str(destination),
+                                       ensemble_size,
                                        args.time_steps,
                                        args.max_iter,
-                                       args.regularisation,
-                                       source_directory,
-                                       str(destination))
+                                       args.regularisation)
+
+    # plot the misfits for each target/landmark/ensemble size together
+    for ensemble_path in Path(args.log_dir).glob('LANDMARKS=*/TARGET*/ENSEMBLE_SIZE=*'):
+        plot_log_misfits(ensemble_path)
