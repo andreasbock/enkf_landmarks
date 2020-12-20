@@ -80,6 +80,7 @@ def run_enkf_on_target(source,
                          template=template,
                          target=target)
 
+
 def plot_log_misfits(path):
     plt.figure()
     for realisation in path.glob('REALISATION*'):
@@ -105,7 +106,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_iter', type=int, default=50, help='Number of EnKF iterations.')
     parser.add_argument('--regularisation', type=float, default=1, help='Regularisation parameter.')
     parser.add_argument('--realisations', type=int, default=20)
-    parser.add_argument('--log_dir', type=str, default='results/')
+    parser.add_argument('--log_dir', type=str, default='RESULTS_ENKF/')
     args = parser.parse_args()
 
     # mapping of landmarks to ensemble sizes we wish to simulate for
