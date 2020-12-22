@@ -6,12 +6,12 @@ This repository contains the Python code used in [this paper](http://arxiv.org/)
 
 To install, run the following commands in `enkf_landmarks`.
 ```
-enkf_landmarks>  poetry shell
-enkf_landmarks>  poetry install
+enkf_landmarks> poetry shell
+enkf_landmarks> poetry install
 ```
 Issue the following command to verify everything has gone well:
 ```
-enkf_landmarks>  python src/verify_pytorch.py
+enkf_landmarks> python src/verify_pytorch.py
 ```
 which should produce:
 ```
@@ -54,13 +54,8 @@ enkf_landmarks
 
 Remember to activate the virtual environment before running the commands below.
 
-  - The script ```manufacture_shape_data.py``` generates target shapes like the ones in figure 1. The three
-  shapes in said figure as well as the initial momentum used to generate them can be found in ```data/TARGET_{1,2,3}```.
-  - Figures 2-7: ```python example_enkf.py``` iterates over the 
-  - ```python example_lddmm.py``` demonstrates the forward operator as well as a shooting
-  approach to determine the optimal trajectories between the template and target. Generates ```example_lddmm.pdf```
-  displaying these.
-
+  - Figure 1, 3-8: `python run_enkf.py` creates a `RESULTS_ENKF` folder and dumps all the results therein.
+  - Figure 2: `python run_regularisation_experiments.py` creates the directory `RESULTS_REGULARISATION_EXPERIMENTS` with the figures.
 
 # License
 
@@ -69,5 +64,5 @@ See `LICENSE.txt`.
 # Todo
 
  - Make it work for curves or images.
- - Clean up numpy usage
- - Use pathlib everywhere, what a mess this is. Honestly mate.
+ - Clean up `numpy` usage.
+ - Use `pathlib` everywhere, what a mess this is. Honestly mate.
