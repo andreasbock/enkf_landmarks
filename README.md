@@ -15,7 +15,7 @@ enkf_landmarks> python src/verify_pytorch.py
 ```
 which should produce:
 ```
-Remember to run 'export GLOO_SOCKET_IFNAME=<your primary interface>!
+Remember to run 'export GLOO_SOCKET_IFNAME=<your primary interface>'!
 Rank: 0 of 4
 Rank: 1 of 4
 Rank: 2 of 4
@@ -54,8 +54,8 @@ enkf_landmarks
 
 Remember to activate the virtual environment before running the commands below.
 
-  - Figure 1, 3-8: `python run_enkf.py` creates a `RESULTS_ENKF` folder and dumps all the results therein.
-  - Figure 2: `python run_regularisation_experiments.py` creates the directory `RESULTS_REGULARISATION_EXPERIMENTS` with the figures.
+  - Figure 1, 3-8: `python src/run_enkf.py` creates a `RESULTS_ENKF` folder and dumps all the results therein.
+  - Figure 2: `python src/run_regularisation_experiments.py` creates the directory `RESULTS_REGULARISATION_EXPERIMENTS` with the figures.
 
 # License
 
