@@ -73,7 +73,7 @@ def run_enkf_on_target(source,
                              template=template,
                              target=target,
                              file_name=file_name,
-                             landmark_label='$F[P^{' + str(k) + '}]$')
+                             landmark_label='$F_{\mathbf{q}_0}[P^{' + str(k) + '}]$')
 
     ke.logger.info('Plotting template and target...')
     utils.plot_landmarks(file_name=destination + '/template_and_target',
