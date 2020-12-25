@@ -61,9 +61,6 @@ def run_enkf_on_target(source,
     ke.logger.info('Plotting errors...')
     utils.plot_misfits(destination + '/misfits.pickle', destination + '/misfits.pdf')
 
-    ke.logger.info('Plotting consensus...')
-    utils.plot_consensus(destination + '/consensus.pickle', destination + '/consensus.pdf')
-
     ke.logger.info('Plotting landmarks...')
     target_pickles = glob.glob(destination + '/Q_mean_iter=*.pickle')
     for target_pickle in target_pickles:
