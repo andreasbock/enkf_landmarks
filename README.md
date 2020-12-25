@@ -1,6 +1,6 @@
 # EnKFDiffeo
 
-This repository contains the Python code used in [this paper](http://arxiv.org/).
+This repository contains a Python implementation of the ensemble Kalman filter used to solve landmark matching problems. 
 
 # Dependencies & Installation
 
