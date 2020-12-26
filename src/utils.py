@@ -171,6 +171,7 @@ def plot_landmarks(file_name,
 
 
 def plot_misfits(misfits_path, file_name):
+    plt.figure()
     po = open(misfits_path, 'rb')
     misfits = pickle.load(po)
     po.close()
@@ -182,6 +183,7 @@ def plot_misfits(misfits_path, file_name):
     plt.grid(linestyle='dotted')
 
     plt.savefig(file_name, bbox_inches='tight')
+    plt.close()
 
 
 def plot_consensus(consensus_path, file_name):
@@ -189,6 +191,7 @@ def plot_consensus(consensus_path, file_name):
     consensus = pickle.load(po)
     po.close()
 
+    plt.figure()
     plt.semilogy(range(len(consensus)), consensus)
 
     plt.xlabel(r'Iteration $k$')
