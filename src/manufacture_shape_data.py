@@ -15,6 +15,11 @@ def make_normal_momentum(num_landmarks, mean, std):
     return _p.clone().detach().requires_grad_(True).type(dtype=torch_dtype)
 
 
+def make_uniform_momentum(num_landmarks, low, high):
+    _p = torch.distributions.uniform.Uniform(low, high).sample([num_landmarks, 2])
+    return _p.clone().detach().requires_grad_(True).type(dtype=torch_dtype)
+
+
 def manufacture_from_normal_distribution(ensemble_size,
                                          num_landmarks,
                                          mean,

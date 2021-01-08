@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 import src.utils as utils
 from src.enkf import EnsembleKalmanFilter
-from src.manufacture_shape_data import make_normal_momentum
+from src.manufacture_shape_data import make_uniform_momentum
 
 
 def run_enkf_on_target(source,
@@ -30,9 +30,7 @@ def run_enkf_on_target(source,
     ke = EnsembleKalmanFilter(template, target, log_dir=destination)
 
     # 3) create initial momentum
-    mean = utils.pload(source + '/mean.pickle')
-    std = utils.pload(source + '/std.pickle')
-    p_ensemble_list = [make_normal_momentum(num_landmarks=len(target), mean=mean, std=std)
+    p_ensemble_list = [make_uniform_momentum(num_landmarks=len(target), low=-1, high=1)
                        for _ in range(ensemble_size)]
 
     # dump stuff into log dir
