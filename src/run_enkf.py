@@ -82,8 +82,8 @@ def plot_log_misfits(path):
         misfits = utils.pload(str(realisation / 'misfits.pickle'))
         plt.semilogy(range(1, len(misfits)+1), misfits)
 
-    plt.xlabel(r'Iteration $k$')
-    plt.ylabel(r'$\log E^k$')
+    plt.xlabel(r'Iteration $k$', fontsize=20)
+    plt.ylabel(r'$\log E^k$', fontsize=20)
     plt.grid(linestyle='dotted')
 
     path_string = str(path)
