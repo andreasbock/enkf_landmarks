@@ -161,10 +161,10 @@ def plot_landmarks(file_name,
     if title:
         plt.title(title)
 
-    plt.legend(loc='best')
+    plt.legend(loc='best', fontsize=12)
     plt.grid(linestyle='dotted')
-    plt.ylabel('y')
-    plt.xlabel('x')
+    plt.ylabel('y', fontsize=20)
+    plt.xlabel('x', fontsize=20)
 
     plt.savefig(file_name + '.pdf', bbox_inches='tight')
     plt.close()
