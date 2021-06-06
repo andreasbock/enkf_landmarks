@@ -100,4 +100,4 @@ def shoot(q0, q1, nt, sigma=_default_landmark_size, p0=None, epochs=15):
     # final p/q solve
     pqs = lddmm_forward(p0, q0, k, nt)
     qs = np.array([q.detach().numpy() for _, q in pqs])
-    return qs
+    return p0, qs
