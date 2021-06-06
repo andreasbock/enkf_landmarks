@@ -14,7 +14,7 @@ target = torch.tensor(utils.circle(num_landmarks, shift=2., scale=2.), dtype=tor
 
 print("Shooting...")
 start = time.time()
-qs = shoot(template, target, time_steps)
+_, qs = shoot(template, target, time_steps)
 end = time.time()
 file_name = 'example_lddmm'
 
