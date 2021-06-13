@@ -161,7 +161,7 @@ def plot_landmarks(file_name,
     if title:
         plt.title(title)
 
-    plt.legend(loc='best', fontsize=12)
+    plt.legend(loc='best', fontsize=14)
     plt.grid(linestyle='dotted')
     plt.ylabel('y', fontsize=20)
     plt.xlabel('x', fontsize=20)
