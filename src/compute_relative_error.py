@@ -28,6 +28,7 @@ if __name__ == "__main__":
         truth_base = Path(f'data/{landmarks}/{target}')
         truth = utils.pload(str(truth_base / 'p_truth.pickle'))
 
+        # plot relative error for each realisation
         plt.figure()
         _relative_error = compute_relative_error(truth)
         for realisation in path.glob('REALISATION*'):
@@ -45,4 +46,3 @@ if __name__ == "__main__":
         destination = str(path / f'../relative_error_{landmarks}_{ensemble_size}.pdf')
         plt.savefig(destination, bbox_inches='tight')
         plt.close()
-        exit()
